@@ -1,13 +1,14 @@
 """
 Хендлер команды /link <code> — привязка Telegram аккаунта к веб-аккаунту.
+Бот вызывает API POST /api/v1/bot/link, который проверяет код в Redis.
 """
 import logging
+import httpx
 
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
 
-from database.db import AsyncSessionLocal
-from database import queries
+from config import API_URL, BOT_TOKEN
 from keyboards.keyboards import main_menu_keyboard
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def link_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Обработчик команды /link <code>.
-    
+
     Пользователь получает код в личном кабинете на сайте (15 мин TTL),
     затем отправляет боту: /link ABC12345
     """
@@ -35,36 +36,51 @@ async def link_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     link_code = context.args[0].strip().upper()
 
-    # Проверяем не привязан ли уже этот telegram_id
-    async with AsyncSessionLocal() as db:
-        existing_user = await queries.get_user_by_telegram_id(db, telegram_id)
-        if existing_user and existing_user.get("group_id"):
-            await update.message.reply_text(
-                f"✅ Ваш Telegram уже привязан к аккаунту <b>{existing_user['name']}</b>.\n\n"
-                "Если хотите привязать другой аккаунт, обратитесь к администратору.",
-                parse_mode="HTML",
-                reply_markup=main_menu_keyboard(),
+    # Вызываем API для привязки
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{API_URL}/bot/link",
+                json={
+                    "link_code": link_code,
+                    "telegram_id": telegram_id,
+                    "telegram_username": telegram_username,
+                },
+                headers={"X-Bot-Token": BOT_TOKEN},
             )
-            return
+    except httpx.RequestError as e:
+        logger.error(f"Ошибка запроса к API: {e}")
+        await update.message.reply_text(
+            "❌ Ошибка связи с сервером. Попробуйте позже."
+        )
+        return
 
-        # Привязываем аккаунт
-        user = await queries.link_telegram_account(db, link_code, telegram_id, telegram_username)
+    if response.status_code == 200:
+        data = response.json()
+        await update.message.reply_text(
+            f"✅ Telegram успешно привязан!\n\n"
+            f"{data.get('message', 'Аккаунт привязан.')}\n\n"
+            "Теперь вы можете пользоваться ботом.",
+            reply_markup=main_menu_keyboard(),
+        )
+        logger.info(f"Telegram {telegram_id} (@{telegram_username}) привязан через API")
 
-    if not user:
+    elif response.status_code == 400:
         await update.message.reply_text(
             "❌ Код недействителен или истёк.\n\n"
             "Получите новый код в личном кабинете на сайте.\n"
             "Код действителен 15 минут."
         )
-        return
-
-    await update.message.reply_text(
-        f"✅ Telegram успешно привязан к аккаунту <b>{user['name']}</b>!\n\n"
-        "Теперь вы можете пользоваться ботом.",
-        parse_mode="HTML",
-        reply_markup=main_menu_keyboard(),
-    )
-    logger.info(f"Telegram {telegram_id} (@{telegram_username}) привязан к пользователю {user['id']}")
+    elif response.status_code == 409:
+        await update.message.reply_text(
+            "⚠️ Этот Telegram аккаунт уже привязан к другому пользователю.\n\n"
+            "Обратитесь к администратору."
+        )
+    else:
+        logger.error(f"API вернул {response.status_code}: {response.text}")
+        await update.message.reply_text(
+            "❌ Произошла ошибка. Попробуйте позже или обратитесь к администратору."
+        )
 
 
 def get_link_handlers():

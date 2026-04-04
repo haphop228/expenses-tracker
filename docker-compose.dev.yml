@@ -1,7 +1,7 @@
 version: '3.8'
 
 # Файл для разработки — переопределяет docker-compose.yml
-# Запуск: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Запуск: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 services:
   postgres:
@@ -13,7 +13,13 @@ services:
   redis:
     ports:
       - "6379:6379"  # Открыть для локального доступа
-    command: redis-server --appendonly yes  # Без пароля в dev
+    # В dev режиме Redis без пароля — переопределяем команду и healthcheck
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
@@ -23,6 +29,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://expenses_user:dev_password@postgres:5432/expenses
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: dev_secret_key_not_for_production_use_only
+      BOT_TOKEN: ${BOT_TOKEN}
+      ADMIN_TELEGRAM_ID: ${ADMIN_TELEGRAM_ID:-0}
       ENVIRONMENT: development
       LOG_LEVEL: DEBUG
     volumes:
@@ -36,6 +44,7 @@ services:
       context: ./bot
       dockerfile: Dockerfile.dev
     environment:
+      BOT_TOKEN: ${BOT_TOKEN}
       DATABASE_URL: postgresql+asyncpg://expenses_user:dev_password@postgres:5432/expenses
       REDIS_URL: redis://redis:6379/0
       ENVIRONMENT: development
@@ -49,18 +58,19 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
     ports:
       - "5173:5173"  # Vite dev server
-    command: npm run dev -- --host 0.0.0.0
-    environment:
-      VITE_API_URL: http://localhost:8000/api/v1
+    # VITE_* переменные встраиваются во время сборки, не в рантайме.
+    # В dev-режиме proxy в vite.config.ts перенаправляет /api -> http://api:8000
 
   # Adminer — удобный веб-интерфейс для PostgreSQL
   adminer:
     image: adminer:latest
     container_name: expenses_adminer
     restart: always
+    depends_on:
+      - postgres
     ports:
       - "8080:8080"
     networks:

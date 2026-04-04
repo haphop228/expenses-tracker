@@ -1,9 +1,12 @@
 # Telegram Bot
-python-telegram-bot==22.0
+python-telegram-bot[job-queue]==22.0
 
 # Database
 asyncpg==0.30.0
 sqlalchemy[asyncio]==2.0.40
+
+# HTTP client (для запросов к API)
+httpx==0.28.1
 
 # Config
 python-dotenv==1.1.0

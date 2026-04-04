@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # ==================== Frontend ====================
-    FRONTEND_URL: str = "http://localhost:3000"
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    FRONTEND_URL: str = "http://localhost:5173"
+    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
 
     @field_validator("DATABASE_URL")
     @classmethod
