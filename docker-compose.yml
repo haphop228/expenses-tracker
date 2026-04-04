@@ -1,0 +1,154 @@
+version: '3.8'
+
+services:
+  # ==================== База данных ====================
+  postgres:
+    image: postgres:16-alpine
+    container_name: expenses_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-expenses}
+      POSTGRES_USER: ${POSTGRES_USER:-expenses_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-expenses_user} -d ${POSTGRES_DB:-expenses}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ==================== Redis ====================
+  redis:
+    image: redis:7-alpine
+    container_name: expenses_redis
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== API (FastAPI) ====================
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: expenses_api
+    restart: always
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-expenses_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-expenses}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      BOT_TOKEN: ${BOT_TOKEN}
+      ADMIN_TELEGRAM_ID: ${ADMIN_TELEGRAM_ID}
+      TIMEZONE: ${TIMEZONE:-Europe/Moscow}
+      DOMAIN: ${DOMAIN:-localhost}
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - frontend
+    volumes:
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ==================== Bot (Telegram) ====================
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: expenses_bot
+    restart: always
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-expenses_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-expenses}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      TIMEZONE: ${TIMEZONE:-Europe/Moscow}
+      DOMAIN: ${DOMAIN:-localhost}
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+
+  # ==================== Frontend (React) ====================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api/v1
+    container_name: expenses_frontend
+    restart: always
+    networks:
+      - frontend
+
+  # ==================== Nginx (Reverse Proxy) ====================
+  nginx:
+    image: nginx:alpine
+    container_name: expenses_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./nginx/certbot-webroot:/var/www/certbot:ro
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - frontend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# ==================== Volumes ====================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ==================== Networks ====================
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge

@@ -1,0 +1,13 @@
+# Telegram Bot
+python-telegram-bot==22.0
+
+# Database
+asyncpg==0.30.0
+sqlalchemy[asyncio]==2.0.40
+
+# Config
+python-dotenv==1.1.0
+
+# Utilities
+openpyxl==3.1.5
+pytz==2025.1

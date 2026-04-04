@@ -1,0 +1,75 @@
+version: '3.8'
+
+# Файл для разработки — переопределяет docker-compose.yml
+# Запуск: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"  # Открыть для локального доступа (DBeaver, psql)
+    environment:
+      POSTGRES_PASSWORD: dev_password
+
+  redis:
+    ports:
+      - "6379:6379"  # Открыть для локального доступа
+    command: redis-server --appendonly yes  # Без пароля в dev
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    environment:
+      DATABASE_URL: postgresql+asyncpg://expenses_user:dev_password@postgres:5432/expenses
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: dev_secret_key_not_for_production_use_only
+      ENVIRONMENT: development
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./api:/app  # Hot reload — монтируем код
+    ports:
+      - "8000:8000"  # Прямой доступ к API (Swagger UI)
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile.dev
+    environment:
+      DATABASE_URL: postgresql+asyncpg://expenses_user:dev_password@postgres:5432/expenses
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: development
+      LOG_LEVEL: DEBUG
+    volumes:
+      - ./bot:/app  # Hot reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    ports:
+      - "5173:5173"  # Vite dev server
+    command: npm run dev -- --host 0.0.0.0
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+
+  # Adminer — удобный веб-интерфейс для PostgreSQL
+  adminer:
+    image: adminer:latest
+    container_name: expenses_adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: pepa-linha
+
+  # Nginx в dev не нужен — фронт и API доступны напрямую
+  nginx:
+    profiles:
+      - production  # Запускается только с --profile production
