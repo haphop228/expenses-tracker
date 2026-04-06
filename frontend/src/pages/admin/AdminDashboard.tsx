@@ -5,8 +5,6 @@ import {
   Building2,
   Plus,
   Trash2,
-  ToggleLeft,
-  ToggleRight,
   LogOut,
   Shield,
   Copy,
@@ -26,7 +24,6 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
-  const [newGroupSlug, setNewGroupSlug] = useState('')
   const [selectedGroup, setSelectedGroup] = useState<AdminGroupResponse | null>(null)
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
@@ -69,30 +66,19 @@ const AdminDashboard: React.FC = () => {
   }
 
   const handleCreateGroup = async () => {
-    if (!newGroupName.trim() || !newGroupSlug.trim()) {
-      toast.error('Заполните все поля')
+    if (!newGroupName.trim()) {
+      toast.error('Введите название группы')
       return
     }
     try {
-      await adminApi.createGroup(newGroupName.trim(), newGroupSlug.trim())
+      await adminApi.createGroup(newGroupName.trim())
       toast.success('Группа создана')
       setShowCreateModal(false)
       setNewGroupName('')
-      setNewGroupSlug('')
       loadGroups()
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } }
       toast.error(error?.response?.data?.detail || 'Ошибка при создании группы')
-    }
-  }
-
-  const handleToggleGroup = async (group: AdminGroupResponse) => {
-    try {
-      await adminApi.toggleGroup(group.id, !group.is_active)
-      toast.success(group.is_active ? 'Группа деактивирована' : 'Группа активирована')
-      loadGroups()
-    } catch {
-      toast.error('Ошибка при изменении статуса')
     }
   }
 
@@ -129,9 +115,6 @@ const AdminDashboard: React.FC = () => {
       toast.error('Не удалось скопировать')
     }
   }
-
-  const slugify = (text: string) =>
-    text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -174,10 +157,10 @@ const AdminDashboard: React.FC = () => {
               <div className="w-9 h-9 bg-green-600/20 rounded-lg flex items-center justify-center">
                 <Users size={18} className="text-green-400" />
               </div>
-              <span className="text-sm text-gray-400">Активных групп</span>
+              <span className="text-sm text-gray-400">Всего участников</span>
             </div>
             <p className="text-3xl font-bold text-white">
-              {groups.filter((g) => g.is_active).length}
+              {groups.reduce((sum, g) => sum + g.members_count, 0)}
             </p>
           </div>
         </div>
@@ -201,7 +184,7 @@ const AdminDashboard: React.FC = () => {
             </div>
           ) : groups.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              Групп пока нет
+              Групп пока нет. Создайте первую группу.
             </div>
           ) : (
             <>
@@ -219,7 +202,7 @@ const AdminDashboard: React.FC = () => {
                         Расходы
                       </th>
                       <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
-                        Статус
+                        За месяц
                       </th>
                       <th className="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Создана
@@ -231,10 +214,7 @@ const AdminDashboard: React.FC = () => {
                     {groups.map((group) => (
                       <tr key={group.id} className="hover:bg-gray-750 transition-colors">
                         <td className="px-6 py-4">
-                          <div>
-                            <p className="text-sm font-medium text-white">{group.name}</p>
-                            <p className="text-xs text-gray-400">/{group.slug}</p>
-                          </div>
+                          <p className="text-sm font-medium text-white">{group.name}</p>
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-sm text-gray-300">{group.members_count}</span>
@@ -243,14 +223,8 @@ const AdminDashboard: React.FC = () => {
                           <span className="text-sm text-gray-300">{group.expenses_count}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                              group.is_active
-                                ? 'bg-green-900/50 text-green-400'
-                                : 'bg-red-900/50 text-red-400'
-                            }`}
-                          >
-                            {group.is_active ? 'Активна' : 'Неактивна'}
+                          <span className="text-sm text-gray-300">
+                            {Number(group.total_spent_month).toLocaleString('ru-RU')} ₽
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -263,19 +237,9 @@ const AdminDashboard: React.FC = () => {
                             <button
                               onClick={() => handleGenerateInvite(group)}
                               className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-900/30 rounded-lg transition-colors"
-                              title="Создать инвайт"
+                              title="Создать инвайт-код"
                             >
                               <Plus size={15} />
-                            </button>
-                            <button
-                              onClick={() => handleToggleGroup(group)}
-                              className="p-1.5 text-gray-400 hover:text-yellow-400 hover:bg-yellow-900/30 rounded-lg transition-colors"
-                              title={group.is_active ? 'Деактивировать' : 'Активировать'}
-                            >
-                              {group.is_active
-                                ? <ToggleRight size={15} />
-                                : <ToggleLeft size={15} />
-                              }
                             </button>
                             <button
                               onClick={() => handleDeleteGroup(group)}
@@ -336,30 +300,16 @@ const AdminDashboard: React.FC = () => {
                 <input
                   type="text"
                   value={newGroupName}
-                  onChange={(e) => {
-                    setNewGroupName(e.target.value)
-                    setNewGroupSlug(slugify(e.target.value))
-                  }}
+                  onChange={(e) => setNewGroupName(e.target.value)}
                   className="block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
                   placeholder="Моя семья"
                   autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Slug (URL-идентификатор)
-                </label>
-                <input
-                  type="text"
-                  value={newGroupSlug}
-                  onChange={(e) => setNewGroupSlug(e.target.value)}
-                  className="block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm font-mono"
-                  placeholder="moya-semya"
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateGroup()}
                 />
               </div>
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => { setShowCreateModal(false); setNewGroupName(''); setNewGroupSlug('') }}
+                  onClick={() => { setShowCreateModal(false); setNewGroupName('') }}
                   className="flex-1 py-2 px-4 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   Отмена

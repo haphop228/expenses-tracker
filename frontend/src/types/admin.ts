@@ -6,26 +6,27 @@ export interface AdminTokenResponse {
 export interface AdminGroupResponse {
   id: number
   name: string
-  slug: string
-  is_active: boolean
   members_count: number
   expenses_count: number
+  total_spent_month: number
+  last_activity: string | null
   created_at: string
 }
 
-export interface AdminGroupDetail extends AdminGroupResponse {
-  settings: {
-    timezone: string
-    currency: string
-    reminder_enabled: boolean
-    reminder_time: string | null
-  }
-  members: Array<{
-    id: number
-    username: string
-    display_name: string | null
-    is_admin: boolean
-    telegram_id: number | null
-    created_at: string
-  }>
+export interface AdminGroupMember {
+  id: number
+  username: string
+  display_name: string | null
+  is_admin: boolean
+  telegram_id: number | null
+  created_at: string
+}
+
+export interface AdminGroupDetail {
+  id: number
+  name: string
+  max_members: number
+  created_at: string
+  members: AdminGroupMember[]
+  statistics: Record<string, unknown>
 }

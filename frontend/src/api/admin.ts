@@ -28,8 +28,9 @@ export const adminApi = {
   },
 
   getGroups: async (page = 1, perPage = 20): Promise<{ items: AdminGroupResponse[]; total: number }> => {
-    const response = await adminClient.get(`/admin/groups?page=${page}&per_page=${perPage}`)
-    return response.data
+    const response = await adminClient.get<AdminGroupResponse[]>(`/admin/groups?page=${page}&per_page=${perPage}`)
+    const items = response.data
+    return { items, total: items.length }
   },
 
   getGroup: async (groupId: number): Promise<AdminGroupDetail> => {
@@ -37,8 +38,8 @@ export const adminApi = {
     return response.data
   },
 
-  createGroup: async (name: string, slug: string): Promise<AdminGroupResponse> => {
-    const response = await adminClient.post<AdminGroupResponse>('/admin/groups', { name, slug })
+  createGroup: async (name: string): Promise<AdminGroupDetail> => {
+    const response = await adminClient.post<AdminGroupDetail>('/admin/groups', { name })
     return response.data
   },
 

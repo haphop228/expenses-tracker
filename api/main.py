@@ -71,7 +71,7 @@ app.add_middleware(
 # Подключаем роутеры
 API_PREFIX = "/api/v1"
 
-app.include_router(health_router, prefix="/api")
+app.include_router(health_router, prefix=API_PREFIX)
 app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(categories_router, prefix=API_PREFIX)
 app.include_router(expenses_router, prefix=API_PREFIX)
