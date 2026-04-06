@@ -36,7 +36,7 @@ async def admin_login(
             detail="Неверный логин или пароль",
         )
 
-    if not verify_totp(admin.totp_secret, data.totp_code):
+    if data.totp_code is not None and not verify_totp(admin.totp_secret, data.totp_code):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный код 2FA",

@@ -279,7 +279,7 @@ class MemberResponse(BaseModel):
 class AdminLoginRequest(BaseModel):
     login: str
     password: str
-    totp_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+    totp_code: Optional[str] = Field(None, min_length=6, max_length=6, pattern=r"^\d{6}$")
 
 
 class AdminTokenResponse(BaseModel):
