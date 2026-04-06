@@ -6,13 +6,13 @@ version: '3.8'
 services:
   postgres:
     ports:
-      - "5432:5432"  # Открыть для локального доступа (DBeaver, psql)
+      - "15432:5432"  # Нестандартный внешний порт — избегаем конфликта с другими процессами
     environment:
       POSTGRES_PASSWORD: dev_password
 
   redis:
     ports:
-      - "6379:6379"  # Открыть для локального доступа
+      - "16379:6379"  # Нестандартный внешний порт — избегаем конфликта с другими процессами
     # В dev режиме Redis без пароля — переопределяем команду и healthcheck
     command: redis-server --appendonly yes
     healthcheck:

@@ -2,25 +2,27 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Any
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 import pyotp
 
 from core.config import settings
-
-# Контекст для хэширования паролей
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # ==================== Пароли ====================
 
 def hash_password(password: str) -> str:
     """Хэшировать пароль."""
-    return pwd_context.hash(password)
+    password_bytes = password.encode("utf-8")
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password_bytes, salt).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Проверить пароль."""
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(
+        plain_password.encode("utf-8"),
+        hashed_password.encode("utf-8"),
+    )
 
 
 # ==================== JWT токены ====================
