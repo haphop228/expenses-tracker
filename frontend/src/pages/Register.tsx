@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams, useParams } from 'react-router-dom'
 import { TrendingDown, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 const Register: React.FC = () => {
   const [searchParams] = useSearchParams()
-  const [inviteCode, setInviteCode] = useState(searchParams.get('invite') || '')
+  const { inviteCode: inviteCodeParam } = useParams<{ inviteCode: string }>()
+  const [inviteCode, setInviteCode] = useState(inviteCodeParam || searchParams.get('invite') || '')
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
@@ -30,8 +31,8 @@ const Register: React.FC = () => {
       return
     }
 
-    if (password.length < 6) {
-      toast.error('Пароль должен быть не менее 6 символов')
+    if (password.length < 8) {
+      toast.error('Пароль должен быть не менее 8 символов')
       return
     }
 
@@ -126,7 +127,7 @@ const Register: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input pr-10"
-                  placeholder="Минимум 6 символов"
+                  placeholder="Минимум 8 символов"
                   autoComplete="new-password"
                   disabled={isLoading}
                 />
