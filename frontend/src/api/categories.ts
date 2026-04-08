@@ -12,8 +12,10 @@ export const categoriesApi = {
     return response.data
   },
 
-  update: async (id: number, name: string, emoji?: string): Promise<Category> => {
-    const response = await apiClient.put<Category>(`/categories/${id}`, { name, emoji })
+  update: async (id: number, name: string, emoji?: string, excludeFromBudget?: boolean): Promise<Category> => {
+    const body: Record<string, unknown> = { name, emoji }
+    if (excludeFromBudget !== undefined) body.exclude_from_budget = excludeFromBudget
+    const response = await apiClient.put<Category>(`/categories/${id}`, body)
     return response.data
   },
 

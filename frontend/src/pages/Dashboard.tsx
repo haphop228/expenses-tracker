@@ -9,11 +9,8 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 
-const COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#6366f1',
-]
 import { format, startOfMonth, endOfMonth } from 'date-fns'
+import { COLORS } from '../constants'
 import { ru } from 'date-fns/locale'
 import { expensesApi } from '../api/expenses'
 import { budgetApi } from '../api/budget'

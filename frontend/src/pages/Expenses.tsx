@@ -33,9 +33,15 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ expense, categories, onClos
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const amountNum = parseFloat(amount.replace(',', '.'))
+    // Строгая валидация: допускаем только цифры с опциональной точкой/запятой
+    const trimmed = amount.trim().replace(',', '.')
+    if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+      toast.error('Введите корректную сумму (только цифры)')
+      return
+    }
+    const amountNum = parseFloat(trimmed)
     if (isNaN(amountNum) || amountNum <= 0) {
-      toast.error('Введите корректную сумму')
+      toast.error('Сумма должна быть больше нуля')
       return
     }
     if (!categoryId) {

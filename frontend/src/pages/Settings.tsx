@@ -10,6 +10,11 @@ import {
   ShieldOff,
   Plus,
   Smile,
+  Edit2,
+  X,
+  Save,
+  EyeOff,
+  Eye,
 } from 'lucide-react'
 import { groupsApi } from '../api/groups'
 import { authApi } from '../api/auth'
@@ -116,6 +121,10 @@ const Settings: React.FC = () => {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryEmoji, setNewCategoryEmoji] = useState('')
   const [settingsForm, setSettingsForm] = useState<Partial<GroupSettings>>({})
+  // Редактирование категории
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null)
+  const [editCategoryName, setEditCategoryName] = useState('')
+  const [editCategoryEmoji, setEditCategoryEmoji] = useState('')
 
   const loadData = useCallback(async () => {
     setIsLoading(true)
@@ -248,6 +257,43 @@ const Settings: React.FC = () => {
       loadData()
     } catch {
       toast.error('Ошибка при удалении категории')
+    }
+  }
+
+  const handleStartEditCategory = (cat: Category) => {
+    setEditingCategoryId(cat.id)
+    setEditCategoryName(cat.name)
+    setEditCategoryEmoji(cat.emoji || '')
+  }
+
+  const handleCancelEditCategory = () => {
+    setEditingCategoryId(null)
+    setEditCategoryName('')
+    setEditCategoryEmoji('')
+  }
+
+  const handleSaveEditCategory = async (id: number) => {
+    if (!editCategoryName.trim()) {
+      toast.error('Введите название категории')
+      return
+    }
+    try {
+      await categoriesApi.update(id, editCategoryName.trim(), editCategoryEmoji.trim() || undefined)
+      toast.success('Категория обновлена')
+      setEditingCategoryId(null)
+      loadData()
+    } catch {
+      toast.error('Ошибка при обновлении категории')
+    }
+  }
+
+  const handleToggleBudgetExclusion = async (cat: Category) => {
+    try {
+      await categoriesApi.update(cat.id, cat.name, cat.emoji || undefined, !cat.exclude_from_budget)
+      toast.success(cat.exclude_from_budget ? 'Категория включена в бюджет' : 'Категория исключена из бюджета')
+      loadData()
+    } catch {
+      toast.error('Ошибка при изменении настройки')
     }
   }
 
@@ -474,22 +520,80 @@ const Settings: React.FC = () => {
                 </h2>
                 <div className="space-y-2">
                   {categories.map((cat) => (
-                    <div
-                      key={cat.id}
-                      className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0"
-                    >
-                      <span className="text-xl w-8 text-center">{cat.emoji || '💰'}</span>
-                      <span className="flex-1 text-sm font-medium text-gray-900">{cat.name}</span>
-                      {cat.exclude_from_budget && (
-                        <span className="badge-gray text-xs">исключена из бюджета</span>
-                      )}
-                      {user?.role === 'admin' && (
-                        <button
-                          onClick={() => handleDeleteCategory(cat.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                    <div key={cat.id} className="border-b border-gray-100 last:border-0">
+                      {editingCategoryId === cat.id ? (
+                        /* Режим редактирования */
+                        <div className="py-2 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <EmojiPicker value={editCategoryEmoji} onChange={setEditCategoryEmoji} />
+                            <input
+                              type="text"
+                              value={editCategoryName}
+                              onChange={(e) => setEditCategoryName(e.target.value)}
+                              className="input flex-1 text-sm"
+                              placeholder="Название категории"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveEditCategory(cat.id)
+                                if (e.key === 'Escape') handleCancelEditCategory()
+                              }}
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleSaveEditCategory(cat.id)}
+                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Сохранить"
+                            >
+                              <Save size={15} />
+                            </button>
+                            <button
+                              onClick={handleCancelEditCategory}
+                              className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Отмена"
+                            >
+                              <X size={15} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Режим просмотра */
+                        <div className="flex items-center gap-3 py-2">
+                          <span className="text-xl w-8 text-center flex-shrink-0">{cat.emoji || '💰'}</span>
+                          <span className="flex-1 text-sm font-medium text-gray-900">{cat.name}</span>
+                          {cat.exclude_from_budget && (
+                            <span className="text-xs text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">
+                              без бюджета
+                            </span>
+                          )}
+                          {user?.role === 'admin' && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleToggleBudgetExclusion(cat)}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  cat.exclude_from_budget
+                                    ? 'text-orange-500 hover:bg-orange-50'
+                                    : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'
+                                }`}
+                                title={cat.exclude_from_budget ? 'Включить в бюджет' : 'Исключить из бюджета'}
+                              >
+                                {cat.exclude_from_budget ? <EyeOff size={15} /> : <Eye size={15} />}
+                              </button>
+                              <button
+                                onClick={() => handleStartEditCategory(cat)}
+                                className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                title="Редактировать"
+                              >
+                                <Edit2 size={15} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCategory(cat.id)}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Удалить"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   ))}

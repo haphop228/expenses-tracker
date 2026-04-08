@@ -15,11 +15,7 @@ import {
 } from 'recharts'
 import { statisticsApi } from '../api/statistics'
 import type { StatsSummaryResponse } from '../types'
-
-const COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#6366f1',
-]
+import { COLORS } from '../constants'
 
 const formatAmount = (amount: number): string =>
   new Intl.NumberFormat('ru-RU', {
@@ -45,6 +41,7 @@ const Statistics: React.FC = () => {
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
   const [activeTab, setActiveTab] = useState<'category' | 'user'>('category')
+  const [excludeBudgetExcluded, setExcludeBudgetExcluded] = useState(false)
 
   const applyPeriod = useCallback((p: string) => {
     const now = new Date()
@@ -76,14 +73,14 @@ const Statistics: React.FC = () => {
     if (!dateFrom || !dateTo) return
     setIsLoading(true)
     try {
-      const data = await statisticsApi.getSummary(dateFrom, dateTo)
+      const data = await statisticsApi.getSummary(dateFrom, dateTo, excludeBudgetExcluded)
       setStats(data)
     } catch {
       // ignore
     } finally {
       setIsLoading(false)
     }
-  }, [dateFrom, dateTo])
+  }, [dateFrom, dateTo, excludeBudgetExcluded])
 
   useEffect(() => {
     loadStats()
@@ -129,6 +126,20 @@ const Statistics: React.FC = () => {
             </button>
           ))}
         </div>
+        {/* Фильтр исключённых категорий */}
+        <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+          <div
+            onClick={() => setExcludeBudgetExcluded((v) => !v)}
+            className={`relative w-10 h-5 rounded-full transition-colors ${excludeBudgetExcluded ? 'bg-primary-600' : 'bg-gray-300'}`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${excludeBudgetExcluded ? 'translate-x-5' : 'translate-x-0'}`}
+            />
+          </div>
+          <span className="text-sm text-gray-700">
+            Без исключённых из бюджета категорий
+          </span>
+        </label>
         {period === 'custom' && (
           <div className="flex gap-3 flex-wrap">
             <div>
