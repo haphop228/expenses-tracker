@@ -115,14 +115,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center gap-3 px-3 py-2 mb-2">
             <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
               <span className="text-primary-700 font-semibold text-sm">
-                {(user?.display_name || user?.username || '?')[0].toUpperCase()}
+                {(user?.name || user?.web_login || '?')[0].toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.display_name || user?.username}
+                {user?.name || user?.web_login}
               </p>
-              {user?.is_admin && (
+              {user?.role === 'admin' && (
                 <p className="text-xs text-primary-600">Администратор</p>
               )}
             </div>

@@ -123,13 +123,13 @@ const Budget: React.FC = () => {
               <h2 className="text-base font-semibold text-gray-900">Общий бюджет</h2>
               <button
                 onClick={() => {
-                  setTotalInput(budget?.budget_limit ? String(budget.budget_limit) : '')
+                  setTotalInput(budget?.total_budget ? String(budget.total_budget) : '')
                   setEditingTotal(true)
                 }}
                 className="btn-secondary btn-sm"
               >
                 <Edit2 size={14} className="mr-1" />
-                {budget?.budget_limit ? 'Изменить' : 'Установить'}
+                {budget?.total_budget ? 'Изменить' : 'Установить'}
               </button>
             </div>
 
@@ -151,41 +151,41 @@ const Budget: React.FC = () => {
                   Отмена
                 </button>
               </div>
-            ) : budget?.budget_limit ? (
+            ) : budget?.total_budget ? (
               <div>
                 <div className="flex justify-between items-end mb-2">
                   <div>
                     <p className="text-3xl font-bold text-gray-900">
-                      {formatAmount(budget.remaining ?? 0)}
+                      {formatAmount(Number(budget.remaining ?? 0))}
                     </p>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      осталось из {formatAmount(budget.budget_limit)}
+                      осталось из {formatAmount(Number(budget.total_budget))}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-semibold text-gray-700">
-                      {formatAmount(budget.total_spent)}
+                      {formatAmount(Number(budget.total_spent))}
                     </p>
                     <p className="text-xs text-gray-400">потрачено</p>
                   </div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
-                    className={`h-3 rounded-full transition-all ${getProgressColor(budget.percentage)}`}
-                    style={{ width: `${Math.min(budget.percentage ?? 0, 100)}%` }}
+                    className={`h-3 rounded-full transition-all ${getProgressColor(budget.percentage_used)}`}
+                    style={{ width: `${Math.min(budget.percentage_used ?? 0, 100)}%` }}
                   />
                 </div>
                 <div className="flex justify-between mt-1">
                   <span className="text-xs text-gray-400">
-                    {budget.percentage?.toFixed(0) ?? 0}% использовано
+                    {budget.percentage_used?.toFixed(0) ?? 0}% использовано
                   </span>
-                  {(budget.percentage ?? 0) >= 100 && (
+                  {(budget.percentage_used ?? 0) >= 100 && (
                     <span className="text-xs text-red-600 flex items-center gap-1">
                       <AlertTriangle size={12} />
                       Превышен!
                     </span>
                   )}
-                  {(budget.percentage ?? 0) < 80 && (
+                  {(budget.percentage_used ?? 0) < 80 && (
                     <span className="text-xs text-green-600 flex items-center gap-1">
                       <CheckCircle size={12} />
                       В норме
@@ -197,7 +197,7 @@ const Budget: React.FC = () => {
               <div className="text-center py-6">
                 <p className="text-gray-400 text-sm">Бюджет не установлен</p>
                 <p className="text-gray-400 text-xs mt-1">
-                  Потрачено: {formatAmount(budget?.total_spent ?? 0)}
+                  Потрачено: {formatAmount(Number(budget?.total_spent ?? 0))}
                 </p>
               </div>
             )}
@@ -209,30 +209,27 @@ const Budget: React.FC = () => {
               <h2 className="text-base font-semibold text-gray-900 mb-4">По категориям</h2>
               <div className="space-y-4">
                 {budget.by_category.map((cat) => (
-                  <div key={cat.category_id} className={cat.exclude_from_budget ? 'opacity-50' : ''}>
+                  <div key={cat.category_id}>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-base">{cat.emoji || '💰'}</span>
+                        <span className="text-base">{cat.category_emoji || '💰'}</span>
                         <span className="text-sm font-medium text-gray-800">
                           {cat.category_name}
                         </span>
-                        {cat.exclude_from_budget && (
-                          <span className="badge-gray text-xs">исключена</span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-gray-900">
-                          {formatAmount(cat.spent)}
+                          {formatAmount(Number(cat.spent))}
                         </span>
-                        {cat.budget_limit && (
+                        {cat.budget && (
                           <span className="text-xs text-gray-400">
-                            / {formatAmount(cat.budget_limit)}
+                            / {formatAmount(Number(cat.budget))}
                           </span>
                         )}
                         <button
                           onClick={() => {
                             setEditingCategory(cat.category_id)
-                            setCategoryInput(cat.budget_limit ? String(cat.budget_limit) : '')
+                            setCategoryInput(cat.budget ? String(cat.budget) : '')
                           }}
                           className="p-1 text-gray-400 hover:text-primary-600 rounded"
                         >
@@ -270,8 +267,8 @@ const Budget: React.FC = () => {
                     ) : (
                       <div className="w-full bg-gray-100 rounded-full h-2">
                         <div
-                          className={`h-2 rounded-full transition-all ${getProgressColor(cat.percentage)}`}
-                          style={{ width: `${Math.min(cat.percentage ?? 0, 100)}%` }}
+                          className={`h-2 rounded-full transition-all ${getProgressColor(cat.percentage_used)}`}
+                          style={{ width: `${Math.min(cat.percentage_used ?? 0, 100)}%` }}
                         />
                       </div>
                     )}

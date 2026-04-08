@@ -13,12 +13,13 @@ export const groupsApi = {
   },
 
   getSettings: async (): Promise<GroupSettings> => {
-    const response = await apiClient.get<GroupSettings>('/groups/settings')
-    return response.data
+    // Настройки приходят в составе GET /groups/me → поле settings
+    const response = await apiClient.get<Group>('/groups/me')
+    return response.data.settings ?? { reminder_time: '22:00', timezone: 'Europe/Moscow', currency: '₽' }
   },
 
   updateSettings: async (settings: Partial<GroupSettings>): Promise<GroupSettings> => {
-    const response = await apiClient.patch<GroupSettings>('/groups/settings', settings)
+    const response = await apiClient.put<GroupSettings>('/groups/settings', settings)
     return response.data
   },
 

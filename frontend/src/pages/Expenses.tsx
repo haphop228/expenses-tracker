@@ -23,7 +23,7 @@ interface ExpenseModalProps {
 }
 
 const ExpenseModal: React.FC<ExpenseModalProps> = ({ expense, categories, onClose, onSave }) => {
-  const [categoryId, setCategoryId] = useState<number>(expense?.category.id ?? (categories[0]?.id ?? 0))
+  const [categoryId, setCategoryId] = useState<number>(expense?.category_id ?? (categories[0]?.id ?? 0))
   const [amount, setAmount] = useState(expense ? String(expense.amount) : '')
   const [comment, setComment] = useState(expense?.comment ?? '')
   const [date, setDate] = useState(
@@ -209,7 +209,7 @@ const Expenses: React.FC = () => {
   const filteredExpenses = searchComment
     ? expenses.filter((e) =>
         e.comment?.toLowerCase().includes(searchComment.toLowerCase()) ||
-        e.category.name.toLowerCase().includes(searchComment.toLowerCase())
+        (e.category_name ?? '').toLowerCase().includes(searchComment.toLowerCase())
       )
     : expenses
 
@@ -323,16 +323,18 @@ const Expenses: React.FC = () => {
                 className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
-                  {expense.category.emoji || '💰'}
+                  {expense.category_emoji || '💰'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-900">
-                      {expense.category.name}
+                      {expense.category_name || '—'}
                     </span>
-                    <span className="badge-gray text-xs">
-                      {expense.user.display_name || expense.user.username}
-                    </span>
+                    {expense.user_name && (
+                      <span className="badge-gray text-xs">
+                        {expense.user_name}
+                      </span>
+                    )}
                   </div>
                   {expense.comment && (
                     <p className="text-xs text-gray-500 truncate mt-0.5">{expense.comment}</p>

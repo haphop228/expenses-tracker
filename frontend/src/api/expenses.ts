@@ -31,7 +31,7 @@ export const expensesApi = {
   },
 
   update: async (id: number, data: ExpenseUpdate): Promise<Expense> => {
-    const response = await apiClient.patch<Expense>(`/expenses/${id}`, data)
+    const response = await apiClient.put<Expense>(`/expenses/${id}`, data)
     return response.data
   },
 

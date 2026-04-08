@@ -59,7 +59,7 @@ const Settings: React.FC = () => {
   const handleGenerateInvite = async () => {
     try {
       const data = await groupsApi.generateInvite()
-      setInviteCode(data.invite_code)
+      setInviteCode(data.code)
       setInviteExpires(data.expires_at)
       toast.success('Инвайт-код создан')
     } catch {
@@ -106,8 +106,8 @@ const Settings: React.FC = () => {
 
   const handleToggleAdmin = async (member: Member) => {
     try {
-      await groupsApi.updateMemberRole(member.id, !member.is_admin)
-      toast.success(member.is_admin ? 'Права администратора сняты' : 'Права администратора выданы')
+      await groupsApi.updateMemberRole(member.id, member.role !== 'admin')
+      toast.success(member.role === 'admin' ? 'Права администратора сняты' : 'Права администратора выданы')
       loadData()
     } catch {
       toast.error('Ошибка при изменении прав')
@@ -225,38 +225,13 @@ const Settings: React.FC = () => {
                   <option value="KZT">₸ Тенге</option>
                 </select>
               </div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="reminder"
-                  checked={settingsForm.reminder_enabled ?? false}
-                  onChange={(e) => setSettingsForm((f) => ({ ...f, reminder_enabled: e.target.checked }))}
-                  className="w-4 h-4 text-primary-600 rounded"
-                />
-                <label htmlFor="reminder" className="text-sm text-gray-700">
-                  Включить напоминания в Telegram
-                </label>
-              </div>
-              {settingsForm.reminder_enabled && (
-                <div>
-                  <label className="label">Время напоминания</label>
-                  <input
-                    type="time"
-                    value={settingsForm.reminder_time ?? '20:00'}
-                    onChange={(e) => setSettingsForm((f) => ({ ...f, reminder_time: e.target.value }))}
-                    className="input w-40"
-                  />
-                </div>
-              )}
               <div>
-                <label className="label">Порог предупреждения о бюджете (%)</label>
+                <label className="label">Время напоминания</label>
                 <input
-                  type="number"
-                  min="50"
-                  max="100"
-                  value={settingsForm.budget_warning_threshold ?? 80}
-                  onChange={(e) => setSettingsForm((f) => ({ ...f, budget_warning_threshold: Number(e.target.value) }))}
-                  className="input w-32"
+                  type="time"
+                  value={settingsForm.reminder_time ?? '20:00'}
+                  onChange={(e) => setSettingsForm((f) => ({ ...f, reminder_time: e.target.value }))}
+                  className="input w-40"
                 />
               </div>
               <button onClick={handleSaveSettings} className="btn-primary">
@@ -268,7 +243,7 @@ const Settings: React.FC = () => {
           {/* Members tab */}
           {activeTab === 'members' && (
             <div className="space-y-4">
-              {user?.is_admin && (
+              {user?.role === 'admin' && (
                 <div className="card">
                   <h2 className="text-base font-semibold text-gray-900 mb-3">Пригласить участника</h2>
                   <p className="text-sm text-gray-500 mb-3">
@@ -313,31 +288,31 @@ const Settings: React.FC = () => {
                     >
                       <div className="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-primary-700 font-semibold text-sm">
-                          {(member.display_name || member.username)[0].toUpperCase()}
+                          {(member.name || member.web_login || '?')[0].toUpperCase()}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-gray-900">
-                            {member.display_name || member.username}
+                            {member.name || member.web_login}
                           </span>
-                          {member.is_admin && (
+                          {member.role === 'admin' && (
                             <span className="badge-blue text-xs">Админ</span>
                           )}
                           {member.telegram_id && (
                             <span className="badge-green text-xs">TG</span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400">@{member.username}</p>
+                        <p className="text-xs text-gray-400">@{member.web_login}</p>
                       </div>
-                      {user?.is_admin && member.id !== user.id && (
+                      {user?.role === 'admin' && member.id !== user.id && (
                         <div className="flex gap-1">
                           <button
                             onClick={() => handleToggleAdmin(member)}
                             className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                            title={member.is_admin ? 'Снять права' : 'Сделать админом'}
+                            title={member.role === 'admin' ? 'Снять права' : 'Сделать админом'}
                           >
-                            {member.is_admin ? <ShieldOff size={15} /> : <Shield size={15} />}
+                            {member.role === 'admin' ? <ShieldOff size={15} /> : <Shield size={15} />}
                           </button>
                           <button
                             onClick={() => handleRemoveMember(member.id)}
@@ -358,7 +333,7 @@ const Settings: React.FC = () => {
           {/* Categories tab */}
           {activeTab === 'categories' && (
             <div className="space-y-4">
-              {user?.is_admin && (
+              {user?.role === 'admin' && (
                 <div className="card">
                   <h2 className="text-base font-semibold text-gray-900 mb-3">Добавить категорию</h2>
                   <div className="flex gap-2 flex-wrap">
@@ -401,7 +376,7 @@ const Settings: React.FC = () => {
                       {cat.exclude_from_budget && (
                         <span className="badge-gray text-xs">исключена из бюджета</span>
                       )}
-                      {user?.is_admin && (
+                      {user?.role === 'admin' && (
                         <button
                           onClick={() => handleDeleteCategory(cat.id)}
                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

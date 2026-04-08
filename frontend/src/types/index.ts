@@ -1,12 +1,16 @@
 // Auth types
 export interface User {
   id: number
-  username: string
-  display_name: string | null
+  group_id: number | null
+  name: string
+  web_login: string | null
   telegram_id: number | null
-  is_admin: boolean
-  is_active: boolean
+  telegram_username: string | null
+  role: string
+  reminder_enabled: boolean
   created_at: string
+  last_seen: string | null
+  group_name?: string | null
 }
 
 export interface TokenResponse {
@@ -21,36 +25,32 @@ export interface AccessTokenResponse {
   token_type: string
 }
 
-export interface LinkCodeResponse {
-  link_code: string
-  expires_in: number
-}
-
 // Group types
 export interface Group {
   id: number
   name: string
-  slug: string
-  is_active: boolean
+  max_members: number
   created_at: string
+  current_members: number
+  settings: GroupSettings | null
 }
 
 export interface GroupSettings {
+  reminder_time: string
   timezone: string
   currency: string
-  reminder_enabled: boolean
-  reminder_time: string | null
-  budget_warning_threshold: number
 }
 
 export interface Member {
   id: number
-  username: string
-  display_name: string | null
+  name: string
+  web_login: string | null
   telegram_id: number | null
-  is_admin: boolean
-  is_active: boolean
-  joined_at: string
+  telegram_username: string | null
+  role: string
+  reminder_enabled: boolean
+  created_at: string
+  last_seen: string | null
 }
 
 // Category types
@@ -58,30 +58,21 @@ export interface Category {
   id: number
   name: string
   emoji: string | null
-  is_active: boolean
   exclude_from_budget: boolean
+  created_at: string
 }
 
 // Expense types
-export interface ExpenseUserInfo {
-  id: number
-  username: string
-  display_name: string | null
-}
-
-export interface ExpenseCategoryInfo {
-  id: number
-  name: string
-  emoji: string | null
-}
-
 export interface Expense {
   id: number
+  user_id: number | null
+  user_name: string | null
+  category_id: number | null
+  category_name: string | null
+  category_emoji: string | null
   amount: number
   comment: string | null
   created_at: string
-  user: ExpenseUserInfo
-  category: ExpenseCategoryInfo
 }
 
 export interface PaginatedExpenses {
@@ -107,9 +98,9 @@ export interface ExpenseUpdate {
 
 // Statistics types
 export interface CategoryStats {
-  category_id: number
-  category_name: string
-  emoji: string | null
+  category_id: number | null
+  category_name: string | null
+  category_emoji: string | null
   total: number
   count: number
   percentage: number
@@ -117,17 +108,16 @@ export interface CategoryStats {
 
 export interface UserStats {
   user_id: number
-  username: string
-  display_name: string | null
+  user_name: string
   total: number
   count: number
   percentage: number
 }
 
 export interface StatsSummaryResponse {
-  date_from: string
-  date_to: string
-  total: number
+  total_amount: number
+  total_count: number
+  average_per_day: number
   by_category: CategoryStats[]
   by_user: UserStats[]
 }
@@ -136,19 +126,23 @@ export interface StatsSummaryResponse {
 export interface BudgetCategoryItem {
   category_id: number
   category_name: string
-  emoji: string | null
-  budget_limit: number | null
+  category_emoji: string | null
+  budget: number | null
   spent: number
-  percentage: number | null
-  exclude_from_budget: boolean
+  remaining: number | null
+  percentage_used: number | null
 }
 
 export interface BudgetResponse {
   month: string
-  budget_limit: number | null
+  total_budget: number | null
   total_spent: number
   remaining: number | null
-  percentage: number | null
+  percentage_used: number | null
+  days_remaining: number
+  daily_budget_remaining: number | null
+  forecast: number | null
+  forecast_over_budget: number | null
   by_category: BudgetCategoryItem[]
 }
 
@@ -163,8 +157,15 @@ export interface BudgetCategorySet {
 
 // Invite types
 export interface InviteResponse {
-  invite_code: string
+  code: string
+  url: string
   expires_at: string
+}
+
+export interface LinkCodeResponse {
+  link_code: string
+  expires_at: string
+  command: string
 }
 
 // API error

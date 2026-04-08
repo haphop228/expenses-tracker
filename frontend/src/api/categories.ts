@@ -13,7 +13,7 @@ export const categoriesApi = {
   },
 
   update: async (id: number, name: string, emoji?: string): Promise<Category> => {
-    const response = await apiClient.patch<Category>(`/categories/${id}`, { name, emoji })
+    const response = await apiClient.put<Category>(`/categories/${id}`, { name, emoji })
     return response.data
   },
 

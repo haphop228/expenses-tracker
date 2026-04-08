@@ -23,7 +23,11 @@ export const authApi = {
   ): Promise<TokenResponse> => {
     const response = await apiClient.post<TokenResponse>(
       `/auth/register/${inviteCode}`,
-      { username, password, display_name: displayName }
+      {
+        web_login: username,
+        web_password: password,
+        name: displayName || username,
+      }
     )
     return response.data
   },

@@ -7,9 +7,8 @@ export const budgetApi = {
     return response.data
   },
 
-  set: async (month: string, amount: number): Promise<BudgetResponse> => {
-    const response = await apiClient.post<BudgetResponse>('/budget/set', { month, amount })
-    return response.data
+  set: async (month: string, amount: number): Promise<void> => {
+    await apiClient.post('/budget/set', { month, amount })
   },
 
   setCategoryLimit: async (

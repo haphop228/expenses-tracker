@@ -34,15 +34,26 @@ def _month_bounds(month: str):
 @router.get("/summary", response_model=StatsSummaryResponse)
 async def get_summary(
     month: Optional[str] = Query(None, description="Месяц YYYY-MM (по умолчанию текущий)"),
+    date_from: Optional[str] = Query(None, description="Дата от YYYY-MM-DD"),
+    date_to: Optional[str] = Query(None, description="Дата до YYYY-MM-DD"),
     exclude_budget_excluded: bool = Query(False, description="Исключить категории, помеченные exclude_from_budget"),
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Получить сводную статистику за месяц."""
-    if not month:
-        month = _current_month()
-
-    dt_from, dt_to = _month_bounds(month)
+    """Получить сводную статистику за период (month или date_from/date_to)."""
+    if date_from and date_to:
+        # Режим произвольного периода
+        try:
+            dt_from = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            dt_to = datetime.strptime(date_to, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59, tzinfo=timezone.utc
+            )
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Неверный формат даты (ожидается YYYY-MM-DD)")
+    else:
+        if not month:
+            month = _current_month()
+        dt_from, dt_to = _month_bounds(month)
 
     # Базовые фильтры
     base_filters = [

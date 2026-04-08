@@ -11,6 +11,10 @@ from schemas.schemas import (
     GroupDetailResponse, GroupSettingsSchema, GroupSettingsUpdate,
     InviteResponse, MemberResponse, MessageResponse, UserUpdate,
 )
+from pydantic import BaseModel
+
+class MemberRoleUpdate(BaseModel):
+    is_admin: bool
 from core.deps import get_current_active_user, require_group_admin
 from core.security import generate_invite_code
 from core.config import settings
@@ -107,6 +111,36 @@ async def create_invite(
         url=f"{base_url}/register/{code}",
         expires_at=expires_at,
     )
+
+
+@router.patch("/members/{user_id}", response_model=MemberResponse)
+async def update_member_role(
+    user_id: int,
+    data: MemberRoleUpdate,
+    current_user: User = Depends(require_group_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Изменить роль участника (только admin)."""
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Нельзя изменить свою роль",
+        )
+
+    result = await db.execute(
+        select(User).where(
+            User.id == user_id,
+            User.group_id == current_user.group_id,
+        )
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Участник не найден")
+
+    member.role = "admin" if data.is_admin else "member"
+    await db.commit()
+    await db.refresh(member)
+    return MemberResponse.model_validate(member)
 
 
 @router.delete("/members/{user_id}", response_model=MessageResponse)

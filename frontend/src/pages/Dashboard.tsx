@@ -73,7 +73,7 @@ const Dashboard: React.FC = () => {
     )
   }
 
-  const budgetPercentage = budget?.percentage ?? null
+  const budgetPercentage = budget?.percentage_used ?? null
   const budgetWarning = budgetPercentage !== null && budgetPercentage >= 80
 
   return (
@@ -81,7 +81,7 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Привет, {user?.display_name || user?.username}! 👋
+          Привет, {user?.name || user?.web_login}! 👋
         </h1>
         <p className="text-gray-500 mt-1 capitalize">{monthName}</p>
       </div>
@@ -97,7 +97,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           <p className="text-2xl font-bold text-gray-900">
-            {formatAmount(stats?.total ?? 0)}
+            {formatAmount(Number(stats?.total_amount ?? 0))}
           </p>
           <p className="text-xs text-gray-400 mt-1">
             {stats?.by_category.length ?? 0} категорий
@@ -115,15 +115,15 @@ const Dashboard: React.FC = () => {
               }
             </div>
           </div>
-          {budget?.budget_limit ? (
+          {budget?.total_budget ? (
             <>
               <p className="text-2xl font-bold text-gray-900">
-                {formatAmount(budget.remaining ?? 0)}
+                {formatAmount(Number(budget.remaining ?? 0))}
               </p>
               <div className="mt-2">
                 <div className="flex justify-between text-xs text-gray-400 mb-1">
                   <span>Использовано {budgetPercentage?.toFixed(0)}%</span>
-                  <span>{formatAmount(budget.budget_limit)}</span>
+                  <span>{formatAmount(Number(budget.total_budget))}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-1.5">
                   <div
@@ -160,10 +160,10 @@ const Dashboard: React.FC = () => {
           {stats?.by_category[0] ? (
             <>
               <p className="text-2xl font-bold text-gray-900">
-                {stats.by_category[0].emoji} {stats.by_category[0].category_name}
+                {stats.by_category[0].category_emoji} {stats.by_category[0].category_name}
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                {formatAmount(stats.by_category[0].total)} · {stats.by_category[0].percentage.toFixed(0)}% расходов
+                {formatAmount(Number(stats.by_category[0].total))} · {stats.by_category[0].percentage.toFixed(0)}% расходов
               </p>
             </>
           ) : (
@@ -181,7 +181,7 @@ const Dashboard: React.FC = () => {
               Бюджет использован на {budgetPercentage?.toFixed(0)}%
             </p>
             <p className="text-xs text-yellow-600 mt-0.5">
-              Осталось {formatAmount(budget.remaining ?? 0)} из {formatAmount(budget.budget_limit!)}
+              Осталось {formatAmount(Number(budget.remaining ?? 0))} из {formatAmount(Number(budget.total_budget!))}
             </p>
           </div>
         </div>
@@ -219,14 +219,14 @@ const Dashboard: React.FC = () => {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center text-lg">
-                    {expense.category.emoji || '💰'}
+                    {expense.category_emoji || '💰'}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      {expense.category.name}
+                      {expense.category_name || '—'}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {expense.comment || expense.user.display_name || expense.user.username}
+                      {expense.comment || expense.user_name || ''}
                       {' · '}
                       {format(new Date(expense.created_at), 'd MMM', { locale: ru })}
                     </p>
@@ -258,10 +258,10 @@ const Dashboard: React.FC = () => {
               <div key={cat.category_id}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-gray-700">
-                    {cat.emoji} {cat.category_name}
+                    {cat.category_emoji} {cat.category_name}
                   </span>
                   <span className="font-medium text-gray-900">
-                    {formatAmount(cat.total)}
+                    {formatAmount(Number(cat.total))}
                   </span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-1.5">

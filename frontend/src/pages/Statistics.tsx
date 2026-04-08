@@ -81,14 +81,14 @@ const Statistics: React.FC = () => {
   }, [loadStats])
 
   const categoryData = stats?.by_category.map((c) => ({
-    name: `${c.emoji || ''} ${c.category_name}`,
-    value: c.total,
+    name: `${c.category_emoji || ''} ${c.category_name || ''}`.trim(),
+    value: Number(c.total),
     percentage: c.percentage,
   })) ?? []
 
   const userData = stats?.by_user.map((u) => ({
-    name: u.display_name || u.username,
-    value: u.total,
+    name: u.user_name,
+    value: Number(u.total),
     percentage: u.percentage,
   })) ?? []
 
@@ -148,7 +148,7 @@ const Statistics: React.FC = () => {
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : !stats || stats.total === 0 ? (
+      ) : !stats || stats.total_amount === 0 ? (
         <div className="card text-center py-12">
           <p className="text-gray-400">Нет данных за выбранный период</p>
         </div>
@@ -157,7 +157,7 @@ const Statistics: React.FC = () => {
           {/* Total */}
           <div className="card">
             <p className="text-sm text-gray-500 mb-1">Итого за период</p>
-            <p className="text-3xl font-bold text-gray-900">{formatAmount(stats.total)}</p>
+            <p className="text-3xl font-bold text-gray-900">{formatAmount(Number(stats.total_amount))}</p>
           </div>
 
           {/* Tabs */}
@@ -228,10 +228,10 @@ const Statistics: React.FC = () => {
                             className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                           />
-                          {cat.emoji} {cat.category_name}
+                          {cat.category_emoji} {cat.category_name}
                         </span>
                         <span className="font-medium text-gray-900">
-                          {formatAmount(cat.total)}
+                          {formatAmount(Number(cat.total))}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -282,10 +282,10 @@ const Statistics: React.FC = () => {
                             className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                           />
-                          {user.display_name || user.username}
+                          {user.user_name}
                         </span>
                         <span className="font-medium text-gray-900">
-                          {formatAmount(user.total)}
+                          {formatAmount(Number(user.total))}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
