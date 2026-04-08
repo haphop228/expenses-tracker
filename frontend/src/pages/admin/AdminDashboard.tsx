@@ -11,10 +11,13 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
 } from 'lucide-react'
 import { adminApi } from '../../api/admin'
 import toast from 'react-hot-toast'
-import type { AdminGroupResponse } from '../../types/admin'
+import type { AdminGroupResponse, AdminGroupDetail } from '../../types/admin'
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
@@ -27,6 +30,9 @@ const AdminDashboard: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState<AdminGroupResponse | null>(null)
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
+  const [expandedGroupId, setExpandedGroupId] = useState<number | null>(null)
+  const [groupDetail, setGroupDetail] = useState<AdminGroupDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
 
   const perPage = 20
   const pages = Math.ceil(total / perPage)
@@ -87,6 +93,7 @@ const AdminDashboard: React.FC = () => {
     try {
       await adminApi.deleteGroup(group.id)
       toast.success('Группа удалена')
+      if (expandedGroupId === group.id) setExpandedGroupId(null)
       loadGroups()
     } catch {
       toast.error('Ошибка при удалении группы')
@@ -104,15 +111,44 @@ const AdminDashboard: React.FC = () => {
     }
   }
 
-  const copyInvite = async () => {
-    if (!inviteCode) return
+  const copyToClipboard = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(inviteCode)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
       setInviteCopied(true)
       setTimeout(() => setInviteCopied(false), 2000)
       toast.success('Скопировано!')
     } catch {
       toast.error('Не удалось скопировать')
+    }
+  }
+
+  const handleToggleExpand = async (group: AdminGroupResponse) => {
+    if (expandedGroupId === group.id) {
+      setExpandedGroupId(null)
+      setGroupDetail(null)
+      return
+    }
+    setExpandedGroupId(group.id)
+    setDetailLoading(true)
+    try {
+      const detail = await adminApi.getGroup(group.id)
+      setGroupDetail(detail)
+    } catch {
+      toast.error('Ошибка загрузки деталей группы')
+    } finally {
+      setDetailLoading(false)
     }
   }
 
@@ -169,13 +205,22 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
             <h2 className="text-base font-semibold text-white">Группы</h2>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              <Plus size={16} />
-              Создать группу
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={loadGroups}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                title="Обновить"
+              >
+                <RefreshCw size={15} />
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <Plus size={16} />
+                Создать группу
+              </button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -212,45 +257,146 @@ const AdminDashboard: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-700">
                     {groups.map((group) => (
-                      <tr key={group.id} className="hover:bg-gray-750 transition-colors">
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-medium text-white">{group.name}</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-gray-300">{group.members_count}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-gray-300">{group.expenses_count}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-gray-300">
-                            {Number(group.total_spent_month).toLocaleString('ru-RU')} ₽
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-xs text-gray-400">
-                            {new Date(group.created_at).toLocaleDateString('ru-RU')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1 justify-end">
-                            <button
-                              onClick={() => handleGenerateInvite(group)}
-                              className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-900/30 rounded-lg transition-colors"
-                              title="Создать инвайт-код"
-                            >
-                              <Plus size={15} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteGroup(group)}
-                              className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
-                              title="Удалить"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                      <React.Fragment key={group.id}>
+                        <tr
+                          className="hover:bg-gray-750 transition-colors cursor-pointer"
+                          onClick={() => handleToggleExpand(group)}
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              {expandedGroupId === group.id
+                                ? <ChevronUp size={14} className="text-gray-400 flex-shrink-0" />
+                                : <ChevronDown size={14} className="text-gray-400 flex-shrink-0" />
+                              }
+                              <p className="text-sm font-medium text-white">{group.name}</p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-gray-300">{group.members_count}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-gray-300">{group.expenses_count}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-gray-300">
+                              {Number(group.total_spent_month).toLocaleString('ru-RU')} ₽
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-xs text-gray-400">
+                              {new Date(group.created_at).toLocaleDateString('ru-RU')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1 justify-end">
+                              <button
+                                onClick={() => handleGenerateInvite(group)}
+                                className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-900/30 rounded-lg transition-colors"
+                                title="Создать инвайт-код"
+                              >
+                                <Plus size={15} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteGroup(group)}
+                                className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
+                                title="Удалить"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Expanded group detail */}
+                        {expandedGroupId === group.id && (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-0">
+                              <div className="bg-gray-750 border border-gray-700 rounded-xl my-3 overflow-hidden">
+                                {detailLoading ? (
+                                  <div className="flex items-center justify-center py-8">
+                                    <div className="w-6 h-6 border-3 border-red-600 border-t-transparent rounded-full animate-spin" />
+                                  </div>
+                                ) : groupDetail && groupDetail.id === group.id ? (
+                                  <div className="p-4 space-y-4">
+                                    {/* Group info */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                      <div className="bg-gray-800 rounded-lg p-3">
+                                        <p className="text-xs text-gray-400 mb-1">Участников</p>
+                                        <p className="text-lg font-bold text-white">{groupDetail.statistics.members_count}</p>
+                                      </div>
+                                      <div className="bg-gray-800 rounded-lg p-3">
+                                        <p className="text-xs text-gray-400 mb-1">Расходов всего</p>
+                                        <p className="text-lg font-bold text-white">{groupDetail.statistics.total_expenses}</p>
+                                      </div>
+                                      <div className="bg-gray-800 rounded-lg p-3">
+                                        <p className="text-xs text-gray-400 mb-1">За месяц</p>
+                                        <p className="text-lg font-bold text-white">
+                                          {Number(groupDetail.statistics.month_spent).toLocaleString('ru-RU')} ₽
+                                        </p>
+                                      </div>
+                                      <div className="bg-gray-800 rounded-lg p-3">
+                                        <p className="text-xs text-gray-400 mb-1">Создана</p>
+                                        <p className="text-sm font-medium text-white">
+                                          {new Date(groupDetail.created_at).toLocaleDateString('ru-RU')}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Members list */}
+                                    {groupDetail.members && groupDetail.members.length > 0 && (
+                                      <div>
+                                        <h4 className="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
+                                          <Users size={14} />
+                                          Участники ({groupDetail.members.length})
+                                        </h4>
+                                        <div className="space-y-2">
+                                          {groupDetail.members.map((member) => (
+                                            <div
+                                              key={member.id}
+                                              className="flex items-center gap-3 bg-gray-800 rounded-lg px-3 py-2"
+                                            >
+                                              <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <span className="text-gray-300 font-semibold text-xs">
+                                                  {(member.name || member.web_login || '?')[0].toUpperCase()}
+                                                </span>
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-sm font-medium text-white">
+                                                    {member.name || member.web_login}
+                                                  </span>
+                                                  {member.role === 'admin' && (
+                                                    <span className="text-xs bg-blue-900/50 text-blue-300 px-1.5 py-0.5 rounded">
+                                                      Админ
+                                                    </span>
+                                                  )}
+                                                  {member.telegram_id && (
+                                                    <span className="text-xs bg-green-900/50 text-green-300 px-1.5 py-0.5 rounded">
+                                                      TG
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                <p className="text-xs text-gray-500">@{member.web_login}</p>
+                                              </div>
+                                              <div className="text-right">
+                                                <p className="text-xs text-gray-400">
+                                                  {member.created_at
+                                                    ? `с ${new Date(member.created_at).toLocaleDateString('ru-RU')}`
+                                                    : ''}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -344,7 +490,7 @@ const AdminDashboard: React.FC = () => {
                   {inviteCode}
                 </code>
                 <button
-                  onClick={copyInvite}
+                  onClick={() => copyToClipboard(inviteCode)}
                   className="p-3 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors"
                 >
                   {inviteCopied ? <Check size={18} className="text-green-400" /> : <Copy size={18} />}
@@ -357,7 +503,7 @@ const AdminDashboard: React.FC = () => {
                 </p>
               </div>
               <p className="text-xs text-gray-500">
-                💡 Пользователь должен перейти по ссылке выше или открыть <strong className="text-gray-400">/register/{inviteCode}</strong> и зарегистрироваться. После этого он сможет войти через <strong className="text-gray-400">/login</strong>.
+                💡 Пользователь должен перейти по ссылке выше и зарегистрироваться. После этого он сможет войти через <strong className="text-gray-400">/login</strong>.
               </p>
               <button
                 onClick={() => { setInviteCode(null); setSelectedGroup(null) }}

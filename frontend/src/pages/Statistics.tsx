@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
+import { format, startOfMonth, endOfMonth, subMonths, startOfWeek, endOfWeek } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import {
   PieChart,
@@ -30,6 +30,8 @@ const formatAmount = (amount: number): string =>
   }).format(amount)
 
 const PERIOD_OPTIONS = [
+  { label: 'Сегодня', value: 'today' },
+  { label: 'Неделя', value: 'week' },
   { label: 'Этот месяц', value: 'current' },
   { label: 'Прошлый месяц', value: 'prev' },
   { label: 'Последние 3 месяца', value: '3months' },
@@ -46,7 +48,14 @@ const Statistics: React.FC = () => {
 
   const applyPeriod = useCallback((p: string) => {
     const now = new Date()
-    if (p === 'current') {
+    if (p === 'today') {
+      const today = format(now, 'yyyy-MM-dd')
+      setDateFrom(today)
+      setDateTo(today)
+    } else if (p === 'week') {
+      setDateFrom(format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd'))
+      setDateTo(format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd'))
+    } else if (p === 'current') {
       setDateFrom(format(startOfMonth(now), 'yyyy-MM-dd'))
       setDateTo(format(endOfMonth(now), 'yyyy-MM-dd'))
     } else if (p === 'prev') {
@@ -265,7 +274,11 @@ const Statistics: React.FC = () => {
                     <XAxis type="number" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                     <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
                     <Tooltip formatter={(value: number) => formatAmount(value)} />
-                    <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                      {userData.map((_, index) => (
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>

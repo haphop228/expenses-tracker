@@ -1,6 +1,7 @@
 export interface AdminTokenResponse {
   access_token: string
   token_type: string
+  admin: Record<string, unknown>
 }
 
 export interface AdminGroupResponse {
@@ -15,11 +16,20 @@ export interface AdminGroupResponse {
 
 export interface AdminGroupMember {
   id: number
-  username: string
-  display_name: string | null
-  is_admin: boolean
+  name: string
+  web_login: string | null
   telegram_id: number | null
+  telegram_username: string | null
+  role: string
+  reminder_enabled: boolean
   created_at: string
+  last_seen: string | null
+}
+
+export interface AdminGroupStatistics {
+  total_expenses: number
+  month_spent: number
+  members_count: number
 }
 
 export interface AdminGroupDetail {
@@ -28,5 +38,5 @@ export interface AdminGroupDetail {
   max_members: number
   created_at: string
   members: AdminGroupMember[]
-  statistics: Record<string, unknown>
+  statistics: AdminGroupStatistics
 }

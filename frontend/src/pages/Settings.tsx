@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Users,
   Settings as SettingsIcon,
@@ -9,6 +9,7 @@ import {
   Shield,
   ShieldOff,
   Plus,
+  Smile,
 } from 'lucide-react'
 import { groupsApi } from '../api/groups'
 import { authApi } from '../api/auth'
@@ -16,6 +17,89 @@ import { categoriesApi } from '../api/categories'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import type { Member, GroupSettings, Category } from '../types'
+
+// Набор emoji для случайного выбора
+const EMOJI_POOL = [
+  '🛒', '🍕', '🚗', '💊', '🎮', '👕', '✈️', '🏠', '📚', '🎬',
+  '🍔', '☕', '🚌', '💇', '🎁', '🐾', '🏋️', '🎵', '🍷', '💻',
+  '🌿', '🧴', '🔧', '🎨', '🏖️', '🍦', '🚀', '🎯', '🧩', '🌍',
+]
+
+const getRandomEmoji = (usedEmojis: string[]): string => {
+  const available = EMOJI_POOL.filter((e) => !usedEmojis.includes(e))
+  if (available.length === 0) return '💰'
+  return available[Math.floor(Math.random() * available.length)]
+}
+
+// Простой emoji-picker
+const EMOJI_PICKER_LIST = [
+  '🛒', '🍕', '🚗', '💊', '🎮', '👕', '✈️', '🏠', '📚', '🎬',
+  '🍔', '☕', '🚌', '💇', '🎁', '🐾', '🏋️', '🎵', '🍷', '💻',
+  '🌿', '🧴', '🔧', '🎨', '🏖️', '🍦', '🚀', '🎯', '🧩', '🌍',
+  '💰', '🏥', '🎓', '🛁', '🌮', '🍣', '🚂', '⚽', '🎪', '🧸',
+  '🌸', '🍎', '🥦', '🧃', '🎂', '🛍️', '💈', '🔑', '📱', '🖥️',
+]
+
+interface EmojiPickerProps {
+  value: string
+  onChange: (emoji: string) => void
+}
+
+const EmojiPicker: React.FC<EmojiPickerProps> = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-12 h-10 flex items-center justify-center text-xl bg-white border border-gray-300 rounded-lg hover:border-primary-400 hover:bg-primary-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+        title="Выбрать emoji"
+      >
+        {value || <Smile size={18} className="text-gray-400" />}
+      </button>
+      {open && (
+        <div className="absolute z-50 top-12 left-0 bg-white border border-gray-200 rounded-xl shadow-xl p-2 w-64">
+          <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto">
+            {EMOJI_PICKER_LIST.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => { onChange(emoji); setOpen(false) }}
+                className={`w-7 h-7 flex items-center justify-center text-lg rounded hover:bg-gray-100 transition-colors ${value === emoji ? 'bg-primary-100 ring-1 ring-primary-400' : ''}`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          {value && (
+            <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between items-center">
+              <span className="text-xs text-gray-400">Выбрано: {value}</span>
+              <button
+                type="button"
+                onClick={() => { onChange(''); setOpen(false) }}
+                className="text-xs text-red-500 hover:text-red-700"
+              >
+                Очистить
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 const Settings: React.FC = () => {
   const { user } = useAuth()
@@ -79,7 +163,20 @@ const Settings: React.FC = () => {
 
   const copyToClipboard = async (text: string, type: 'link' | 'invite') => {
     try {
-      await navigator.clipboard.writeText(text)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        // Fallback для HTTP
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
       if (type === 'link') {
         setLinkCopied(true)
         setTimeout(() => setLinkCopied(false), 2000)
@@ -129,8 +226,11 @@ const Settings: React.FC = () => {
       toast.error('Введите название категории')
       return
     }
+    // Если emoji не выбран — берём случайный из неиспользованных
+    const usedEmojis = categories.map((c) => c.emoji).filter(Boolean) as string[]
+    const emoji = newCategoryEmoji.trim() || getRandomEmoji(usedEmojis)
     try {
-      await categoriesApi.create(newCategoryName.trim(), newCategoryEmoji.trim() || undefined)
+      await categoriesApi.create(newCategoryName.trim(), emoji)
       toast.success('Категория добавлена')
       setNewCategoryName('')
       setNewCategoryEmoji('')
@@ -198,7 +298,8 @@ const Settings: React.FC = () => {
                 <select
                   value={settingsForm.timezone ?? 'Europe/Moscow'}
                   onChange={(e) => setSettingsForm((f) => ({ ...f, timezone: e.target.value }))}
-                  className="input"
+                  className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none cursor-pointer"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                 >
                   <option value="Europe/Moscow">Москва (UTC+3)</option>
                   <option value="Europe/Kaliningrad">Калининград (UTC+2)</option>
@@ -217,7 +318,8 @@ const Settings: React.FC = () => {
                 <select
                   value={settingsForm.currency ?? 'RUB'}
                   onChange={(e) => setSettingsForm((f) => ({ ...f, currency: e.target.value }))}
-                  className="input"
+                  className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none cursor-pointer"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                 >
                   <option value="RUB">₽ Рубль</option>
                   <option value="USD">$ Доллар</option>
@@ -271,6 +373,9 @@ const Settings: React.FC = () => {
                           Действует до: {new Date(inviteExpires).toLocaleString('ru-RU')}
                         </p>
                       )}
+                      <p className="text-xs text-blue-500 mt-1">
+                        Ссылка: {window.location.origin}/register/{inviteCode}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -336,28 +441,30 @@ const Settings: React.FC = () => {
               {user?.role === 'admin' && (
                 <div className="card">
                   <h2 className="text-base font-semibold text-gray-900 mb-3">Добавить категорию</h2>
-                  <div className="flex gap-2 flex-wrap">
-                    <input
-                      type="text"
-                      value={newCategoryEmoji}
-                      onChange={(e) => setNewCategoryEmoji(e.target.value)}
-                      className="input w-20 text-center text-xl"
-                      placeholder="😀"
-                      maxLength={2}
-                    />
-                    <input
-                      type="text"
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      className="input flex-1 min-w-40"
-                      placeholder="Название категории"
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-                    />
-                    <button onClick={handleAddCategory} className="btn-primary btn-sm">
+                  <div className="flex gap-2 flex-wrap items-end">
+                    <div>
+                      <label className="label">Emoji</label>
+                      <EmojiPicker value={newCategoryEmoji} onChange={setNewCategoryEmoji} />
+                    </div>
+                    <div className="flex-1 min-w-40">
+                      <label className="label">Название</label>
+                      <input
+                        type="text"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        className="input"
+                        placeholder="Название категории"
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                      />
+                    </div>
+                    <button onClick={handleAddCategory} className="btn-primary btn-sm h-10">
                       <Plus size={16} className="mr-1" />
                       Добавить
                     </button>
                   </div>
+                  <p className="text-xs text-gray-400 mt-2">
+                    Если не выбрать emoji — будет назначен случайный 🎲
+                  </p>
                 </div>
               )}
 

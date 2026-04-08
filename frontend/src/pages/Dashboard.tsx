@@ -8,6 +8,11 @@ import {
   ArrowRight,
   AlertTriangle,
 } from 'lucide-react'
+
+const COLORS = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#6366f1',
+]
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { expensesApi } from '../api/expenses'
@@ -254,10 +259,14 @@ const Dashboard: React.FC = () => {
             </Link>
           </div>
           <div className="space-y-3">
-            {stats.by_category.slice(0, 5).map((cat) => (
+            {stats.by_category.slice(0, 5).map((cat, index) => (
               <div key={cat.category_id}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-700">
+                  <span className="text-gray-700 flex items-center gap-1.5">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
                     {cat.category_emoji} {cat.category_name}
                   </span>
                   <span className="font-medium text-gray-900">
@@ -266,8 +275,11 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-1.5">
                   <div
-                    className="bg-primary-500 h-1.5 rounded-full"
-                    style={{ width: `${cat.percentage}%` }}
+                    className="h-1.5 rounded-full"
+                    style={{
+                      width: `${cat.percentage}%`,
+                      backgroundColor: COLORS[index % COLORS.length],
+                    }}
                   />
                 </div>
               </div>
