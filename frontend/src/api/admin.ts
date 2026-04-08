@@ -59,7 +59,7 @@ export const adminApi = {
     return response.data
   },
 
-  generateInvite: async (groupId: number): Promise<{ invite_code: string; expires_at: string }> => {
+  generateInvite: async (groupId: number): Promise<{ code: string; expires_at: string; group_id: number }> => {
     const response = await adminClient.post(`/admin/groups/${groupId}/invite`)
     return response.data
   },

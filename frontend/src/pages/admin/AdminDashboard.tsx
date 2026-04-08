@@ -96,7 +96,7 @@ const AdminDashboard: React.FC = () => {
   const handleGenerateInvite = async (group: AdminGroupResponse) => {
     try {
       const data = await adminApi.generateInvite(group.id)
-      setInviteCode(data.invite_code)
+      setInviteCode(data.code)
       setSelectedGroup(group)
       toast.success('Инвайт-код создан')
     } catch {
@@ -350,6 +350,15 @@ const AdminDashboard: React.FC = () => {
                   {inviteCopied ? <Check size={18} className="text-green-400" /> : <Copy size={18} />}
                 </button>
               </div>
+              <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
+                <p className="text-xs text-gray-400 mb-1">Ссылка для регистрации:</p>
+                <p className="text-xs font-mono text-blue-400 break-all">
+                  {window.location.origin}/register/{inviteCode}
+                </p>
+              </div>
+              <p className="text-xs text-gray-500">
+                💡 Пользователь должен перейти по ссылке выше или открыть <strong className="text-gray-400">/register/{inviteCode}</strong> и зарегистрироваться. После этого он сможет войти через <strong className="text-gray-400">/login</strong>.
+              </p>
               <button
                 onClick={() => { setInviteCode(null); setSelectedGroup(null) }}
                 className="w-full py-2 px-4 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
