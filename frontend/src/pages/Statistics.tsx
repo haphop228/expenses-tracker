@@ -127,19 +127,36 @@ const Statistics: React.FC = () => {
           ))}
         </div>
         {/* Фильтр исключённых категорий */}
-        <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
-          <div
-            onClick={() => setExcludeBudgetExcluded((v) => !v)}
-            className={`relative w-10 h-5 rounded-full transition-colors ${excludeBudgetExcluded ? 'bg-primary-600' : 'bg-gray-300'}`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${excludeBudgetExcluded ? 'translate-x-5' : 'translate-x-0'}`}
-            />
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <p className="text-xs text-gray-500 mb-2">Учёт категорий в статистике:</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setExcludeBudgetExcluded(false)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                !excludeBudgetExcluded
+                  ? 'bg-primary-600 text-white border-primary-600'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-primary-400 hover:text-primary-600'
+              }`}
+            >
+              Все категории
+            </button>
+            <button
+              onClick={() => setExcludeBudgetExcluded(true)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                excludeBudgetExcluded
+                  ? 'bg-primary-600 text-white border-primary-600'
+                  : 'bg-white text-gray-600 border-gray-300 hover:border-primary-400 hover:text-primary-600'
+              }`}
+            >
+              Только бюджетные
+            </button>
           </div>
-          <span className="text-sm text-gray-700">
-            Без исключённых из бюджета категорий
-          </span>
-        </label>
+          {excludeBudgetExcluded && (
+            <p className="text-xs text-orange-500 mt-1.5">
+              ⚠️ Категории, исключённые из бюджета, не учитываются
+            </p>
+          )}
+        </div>
         {period === 'custom' && (
           <div className="flex gap-3 flex-wrap">
             <div>

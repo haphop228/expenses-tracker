@@ -105,10 +105,11 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ expense, categories, onClos
             <label className="label">Сумма (₽)</label>
             <input
               type="text"
+              inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="input"
-              placeholder="0.00"
+              className="input text-lg font-semibold"
+              placeholder="Например: 350"
               disabled={isLoading}
               autoFocus
             />

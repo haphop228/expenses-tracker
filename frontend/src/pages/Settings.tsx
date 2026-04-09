@@ -556,43 +556,62 @@ const Settings: React.FC = () => {
                         </div>
                       ) : (
                         /* Режим просмотра */
-                        <div className="flex items-center gap-3 py-2">
-                          <span className="text-xl w-8 text-center flex-shrink-0">{cat.emoji || '💰'}</span>
-                          <span className="flex-1 text-sm font-medium text-gray-900">{cat.name}</span>
-                          {cat.exclude_from_budget && (
-                            <span className="text-xs text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">
-                              без бюджета
-                            </span>
-                          )}
-                          {user?.role === 'admin' && (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => handleToggleBudgetExclusion(cat)}
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  cat.exclude_from_budget
-                                    ? 'text-orange-500 hover:bg-orange-50'
-                                    : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'
+                        <div className="py-3">
+                          {/* Строка: emoji + название + кнопки */}
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl w-8 text-center flex-shrink-0">{cat.emoji || '💰'}</span>
+                            <span className="flex-1 text-sm font-medium text-gray-900">{cat.name}</span>
+                            {user?.role === 'admin' && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleStartEditCategory(cat)}
+                                  className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                  title="Редактировать"
+                                >
+                                  <Edit2 size={15} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCategory(cat.id)}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Удалить"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          {/* Toggle "Учитывать в бюджете" — виден всем, кликабелен только admin */}
+                          <div className="flex items-center gap-2 mt-2 ml-11">
+                            <button
+                              type="button"
+                              onClick={user?.role === 'admin' ? () => handleToggleBudgetExclusion(cat) : undefined}
+                              className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                                user?.role === 'admin' ? 'cursor-pointer' : 'cursor-default'
+                              } ${!cat.exclude_from_budget ? 'bg-primary-600' : 'bg-gray-300'}`}
+                              aria-pressed={!cat.exclude_from_budget}
+                              title={
+                                user?.role !== 'admin'
+                                  ? undefined
+                                  : cat.exclude_from_budget
+                                  ? 'Нажмите, чтобы включить в бюджет'
+                                  : 'Нажмите, чтобы исключить из бюджета'
+                              }
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                                  !cat.exclude_from_budget ? 'translate-x-4' : 'translate-x-0'
                                 }`}
-                                title={cat.exclude_from_budget ? 'Включить в бюджет' : 'Исключить из бюджета'}
-                              >
-                                {cat.exclude_from_budget ? <EyeOff size={15} /> : <Eye size={15} />}
-                              </button>
-                              <button
-                                onClick={() => handleStartEditCategory(cat)}
-                                className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                                title="Редактировать"
-                              >
-                                <Edit2 size={15} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteCategory(cat.id)}
-                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Удалить"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          )}
+                              />
+                            </button>
+                            <span className={`text-xs ${!cat.exclude_from_budget ? 'text-gray-700' : 'text-gray-400 line-through'}`}>
+                              Учитывать в бюджете
+                            </span>
+                            {cat.exclude_from_budget && (
+                              <span className="text-xs text-orange-500">
+                                (не учитывается)
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
