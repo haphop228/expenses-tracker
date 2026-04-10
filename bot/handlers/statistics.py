@@ -1,6 +1,6 @@
 import calendar
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from telegram import Update
 from telegram.ext import ContextTypes, CallbackQueryHandler
@@ -20,12 +20,78 @@ def _get_month_bounds(year: int, mon: int):
     return date_from, date_to
 
 
+def _format_stats_text(title: str, by_cat: list, by_user: list) -> str:
+    """Форматировать текст статистики."""
+    total = sum(row["total"] for row in by_cat if row["total"])
+    lines = [f"📊 {title}\n"]
+    lines.append(f"💰 Итого: <b>{format_amount(total)} ₽</b>\n")
+
+    if by_cat:
+        lines.append("По категориям:")
+        for row in by_cat:
+            emoji = row.get("emoji") or ""
+            name = row.get("name") or "Без категории"
+            pct = (row["total"] / total * 100) if total > 0 else 0
+            lines.append(f"  {emoji} {name}: {format_amount(row['total'])} ₽ ({pct:.0f}%)")
+    else:
+        lines.append("Трат за этот период нет.")
+
+    if by_user:
+        lines.append("\nПо участникам:")
+        for row in by_user:
+            name = row.get("user_name") or f"User #{row['user_id']}"
+            lines.append(f"  👤 {name}: {format_amount(row['total'])} ₽")
+
+    return "\n".join(lines)
+
+
 @auth_callback
 async def statistics_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Меню статистики."""
     query = update.callback_query
     await query.answer()
     await query.edit_message_text("📊 Статистика:", reply_markup=statistics_keyboard())
+
+
+@auth_callback
+async def stats_today(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Статистика за сегодня."""
+    query = update.callback_query
+    await query.answer()
+
+    now = datetime.now()
+    date_from = now.strftime("%Y-%m-%d")
+    date_to = now.strftime("%Y-%m-%d 23:59:59")
+    group_id = context.user_data["group_id"]
+
+    async with AsyncSessionLocal() as db:
+        by_cat = await queries.get_stats_by_category(db, group_id, date_from, date_to)
+        by_user = await queries.get_stats_by_user(db, group_id, date_from, date_to)
+
+    title = f"Сегодня, {now.strftime('%d.%m.%Y')}"
+    text = _format_stats_text(title, by_cat, by_user)
+    await query.edit_message_text(text, parse_mode="HTML", reply_markup=back_keyboard("statistics"))
+
+
+@auth_callback
+async def stats_week(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Статистика за последние 7 дней."""
+    query = update.callback_query
+    await query.answer()
+
+    now = datetime.now()
+    week_ago = now - timedelta(days=6)
+    date_from = week_ago.strftime("%Y-%m-%d")
+    date_to = now.strftime("%Y-%m-%d 23:59:59")
+    group_id = context.user_data["group_id"]
+
+    async with AsyncSessionLocal() as db:
+        by_cat = await queries.get_stats_by_category(db, group_id, date_from, date_to)
+        by_user = await queries.get_stats_by_user(db, group_id, date_from, date_to)
+
+    title = f"Неделя ({week_ago.strftime('%d.%m')}–{now.strftime('%d.%m.%Y')})"
+    text = _format_stats_text(title, by_cat, by_user)
+    await query.edit_message_text(text, parse_mode="HTML", reply_markup=back_keyboard("statistics"))
 
 
 @auth_callback
@@ -42,26 +108,8 @@ async def stats_current_month(update: Update, context: ContextTypes.DEFAULT_TYPE
         by_cat = await queries.get_stats_by_category(db, group_id, date_from, date_to)
         by_user = await queries.get_stats_by_user(db, group_id, date_from, date_to)
 
-    total = sum(row["total"] for row in by_cat if row["total"])
-
-    lines = [f"📊 Статистика за {now.strftime('%B %Y')}\n"]
-    lines.append(f"💰 Итого: <b>{format_amount(total)} ₽</b>\n")
-
-    if by_cat:
-        lines.append("По категориям:")
-        for row in by_cat:
-            emoji = row.get("emoji") or ""
-            name = row.get("name") or "Без категории"
-            pct = (row["total"] / total * 100) if total > 0 else 0
-            lines.append(f"  {emoji} {name}: {format_amount(row['total'])} ₽ ({pct:.0f}%)")
-
-    if by_user:
-        lines.append("\nПо участникам:")
-        for row in by_user:
-            name = row.get("user_name") or f"User #{row['user_id']}"
-            lines.append(f"  👤 {name}: {format_amount(row['total'])} ₽")
-
-    text = "\n".join(lines)
+    title = f"Текущий месяц ({now.strftime('%B %Y')})"
+    text = _format_stats_text(title, by_cat, by_user)
     await query.edit_message_text(text, parse_mode="HTML", reply_markup=back_keyboard("statistics"))
 
 
@@ -84,30 +132,9 @@ async def stats_prev_month(update: Update, context: ContextTypes.DEFAULT_TYPE):
         by_cat = await queries.get_stats_by_category(db, group_id, date_from, date_to)
         by_user = await queries.get_stats_by_user(db, group_id, date_from, date_to)
 
-    total = sum(row["total"] for row in by_cat if row["total"])
     month_name = datetime(year, mon, 1).strftime("%B %Y")
-
-    lines = [f"📊 Статистика за {month_name}\n"]
-    lines.append(f"💰 Итого: <b>{format_amount(total)} ₽</b>\n")
-
-    if by_cat:
-        lines.append("По категориям:")
-        for row in by_cat:
-            emoji = row.get("emoji") or ""
-            name = row.get("name") or "Без категории"
-            pct = (row["total"] / total * 100) if total > 0 else 0
-            lines.append(f"  {emoji} {name}: {format_amount(row['total'])} ₽ ({pct:.0f}%)")
-
-    if by_user:
-        lines.append("\nПо участникам:")
-        for row in by_user:
-            name = row.get("user_name") or f"User #{row['user_id']}"
-            lines.append(f"  👤 {name}: {format_amount(row['total'])} ₽")
-
-    if not by_cat:
-        lines.append("Трат за этот период нет.")
-
-    text = "\n".join(lines)
+    title = f"Прошлый месяц ({month_name})"
+    text = _format_stats_text(title, by_cat, by_user)
     await query.edit_message_text(text, parse_mode="HTML", reply_markup=back_keyboard("statistics"))
 
 
@@ -198,6 +225,8 @@ def get_statistics_handlers():
     """Получить обработчики для регистрации."""
     return [
         CallbackQueryHandler(statistics_menu, pattern="^statistics$"),
+        CallbackQueryHandler(stats_today, pattern="^stats_today$"),
+        CallbackQueryHandler(stats_week, pattern="^stats_week$"),
         CallbackQueryHandler(stats_current_month, pattern="^stats_month$"),
         CallbackQueryHandler(stats_prev_month, pattern="^stats_prev_month$"),
         CallbackQueryHandler(stats_last_expenses, pattern="^stats_last$"),

@@ -40,7 +40,11 @@ def confirm_expense_keyboard() -> InlineKeyboardMarkup:
 def statistics_keyboard() -> InlineKeyboardMarkup:
     """Меню статистики."""
     buttons = [
-        [InlineKeyboardButton("📅 Текущий месяц", callback_data="stats_month")],
+        [
+            InlineKeyboardButton("📅 Сегодня", callback_data="stats_today"),
+            InlineKeyboardButton("📅 Неделя", callback_data="stats_week"),
+        ],
+        [InlineKeyboardButton("🗓 Текущий месяц", callback_data="stats_month")],
         [InlineKeyboardButton("📆 Прошлый месяц", callback_data="stats_prev_month")],
         [InlineKeyboardButton("📋 Последние траты", callback_data="stats_last")],
         [InlineKeyboardButton("📥 Экспорт в Excel", callback_data="stats_export")],

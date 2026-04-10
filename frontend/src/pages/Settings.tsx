@@ -375,12 +375,34 @@ const Settings: React.FC = () => {
               </div>
               <div>
                 <label className="label">Время напоминания</label>
-                <input
-                  type="time"
-                  value={settingsForm.reminder_time ?? '20:00'}
-                  onChange={(e) => setSettingsForm((f) => ({ ...f, reminder_time: e.target.value }))}
-                  className="input w-40"
-                />
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {['08:00', '12:00', '18:00', '20:00', '21:00', '22:00'].map((t) => {
+                    const isActive = (settingsForm.reminder_time ?? '20:00') === t
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setSettingsForm((f) => ({ ...f, reminder_time: t }))}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                          isActive
+                            ? 'bg-primary-600 text-white border-primary-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400 hover:text-primary-600'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="time"
+                    value={settingsForm.reminder_time ?? '20:00'}
+                    onChange={(e) => setSettingsForm((f) => ({ ...f, reminder_time: e.target.value }))}
+                    className="input w-36"
+                  />
+                  <span className="text-xs text-gray-500">или введите вручную</span>
+                </div>
               </div>
               <button onClick={handleSaveSettings} className="btn-primary">
                 Сохранить настройки
