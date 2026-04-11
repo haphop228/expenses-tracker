@@ -9,6 +9,7 @@ from sqlalchemy import select
 from database import get_db
 from models.models import User, Admin
 from core.security import decode_token
+from core.redis import key_exists, token_blacklist_key
 
 # Bearer token схема
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -36,6 +37,10 @@ async def get_current_user(
 
     # Проверяем тип токена
     if payload.get("type") != "access":
+        raise credentials_exception
+
+    # Проверяем blacklist (токен инвалидирован через logout)
+    if await key_exists(token_blacklist_key(credentials.credentials)):
         raise credentials_exception
 
     user_id: Optional[str] = payload.get("sub")
@@ -127,7 +132,7 @@ async def verify_bot_token(
     x_bot_token: Optional[str] = Header(None, alias="X-Bot-Token"),
 ) -> bool:
     """Проверить токен бота для внутренних запросов Bot → API."""
-    if not x_bot_token or x_bot_token != settings.BOT_TOKEN:
+    if not x_bot_token or x_bot_token != settings.BOT_API_SECRET:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный токен бота",

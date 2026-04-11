@@ -569,13 +569,18 @@ async def get_total_spent_for_month(
 
 # ==================== НАСТРОЙКИ ГРУППЫ ====================
 
+# Whitelist допустимых полей настроек — защита от SQL Injection
+_ALLOWED_SETTING_KEYS = frozenset({
+    "reminder_time", "timezone", "currency",
+    "reminder_enabled", "language",
+})
+
+
 async def get_group_setting(db: AsyncSession, group_id: int, key: str) -> Optional[str]:
     """Получить настройку группы."""
-    result = await db.execute(
-        text("SELECT :key FROM group_settings WHERE group_id = :group_id"),
-        {"key": key, "group_id": group_id}
-    )
-    # Используем прямой запрос для конкретного поля
+    if key not in _ALLOWED_SETTING_KEYS:
+        raise ValueError(f"Недопустимое поле настройки: {key!r}")
+    # Имя колонки безопасно — проверено whitelist'ом выше
     result = await db.execute(
         text(f"SELECT {key} FROM group_settings WHERE group_id = :group_id"),
         {"group_id": group_id}

@@ -59,6 +59,7 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       REFRESH_TOKEN_EXPIRE_DAYS: 7
       BOT_TOKEN: ${BOT_TOKEN}
+      BOT_API_SECRET: ${BOT_API_SECRET}
       ADMIN_TELEGRAM_ID: ${ADMIN_TELEGRAM_ID}
       TIMEZONE: ${TIMEZONE:-Europe/Moscow}
       DOMAIN: ${DOMAIN:-localhost}
@@ -90,6 +91,7 @@ services:
     restart: always
     environment:
       BOT_TOKEN: ${BOT_TOKEN}
+      BOT_API_SECRET: ${BOT_API_SECRET}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-expenses_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-expenses}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       TIMEZONE: ${TIMEZONE:-Europe/Moscow}

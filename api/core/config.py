@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     # ==================== Telegram ====================
     BOT_TOKEN: str
+    BOT_API_SECRET: str = ""
     ADMIN_TELEGRAM_ID: Optional[int] = None
 
     # ==================== Настройки ====================

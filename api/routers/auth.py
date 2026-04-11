@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -19,9 +20,12 @@ from core.security import (
 from core.redis import (
     set_with_ttl, get_value, delete_key, key_exists,
     token_blacklist_key, link_code_key, refresh_token_key,
+    get_redis,
 )
 from core.deps import get_current_user, get_current_active_user
 from core.config import settings
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -164,11 +168,28 @@ async def login(
 
 @router.post("/logout", response_model=MessageResponse)
 async def logout(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     current_user: User = Depends(get_current_user),
 ):
-    """Выход из системы."""
-    # Инвалидация происходит на клиенте (удаление cookie)
-    # Для полной инвалидации можно добавить токен в blacklist
+    """Выход из системы — инвалидирует access и refresh токены."""
+    if credentials:
+        access_token = credentials.credentials
+        payload = decode_token(access_token)
+        # Добавляем access token в blacklist до истечения его TTL
+        if payload:
+            exp = payload.get("exp")
+            now_ts = int(datetime.now(timezone.utc).timestamp())
+            ttl = max(exp - now_ts, 1) if exp else settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            await set_with_ttl(token_blacklist_key(access_token), "1", ttl)
+
+        # Удаляем refresh токен из Redis (все сессии пользователя)
+        user_id = current_user.id
+        r = await get_redis()
+        # Ищем все refresh-ключи этого пользователя и удаляем
+        pattern = f"refresh:{user_id}:*"
+        async for key in r.scan_iter(pattern):
+            await r.delete(key)
+
     return MessageResponse(message="Выход выполнен успешно")
 
 
