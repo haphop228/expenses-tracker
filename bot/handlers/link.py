@@ -8,7 +8,7 @@ import httpx
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
 
-from config import API_URL, BOT_TOKEN
+from config import API_URL, BOT_API_SECRET
 from keyboards.keyboards import main_menu_keyboard
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ async def link_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "telegram_id": telegram_id,
                     "telegram_username": telegram_username,
                 },
-                headers={"X-Bot-Token": BOT_TOKEN},
+                headers={"X-Bot-Token": BOT_API_SECRET},
             )
     except httpx.RequestError as e:
         logger.error(f"Ошибка запроса к API: {e}")

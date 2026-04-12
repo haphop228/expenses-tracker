@@ -7,7 +7,6 @@ import toast from 'react-hot-toast'
 const AdminLogin: React.FC = () => {
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
-  const [totpCode, setTotpCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
@@ -20,7 +19,7 @@ const AdminLogin: React.FC = () => {
     }
     setIsLoading(true)
     try {
-      const data = await adminApi.login(login.trim(), password, totpCode.trim() || undefined)
+      const data = await adminApi.login(login.trim(), password)
       localStorage.setItem('admin_token', data.access_token)
       navigate('/admin/dashboard')
       toast.success('Добро пожаловать в панель администратора')
@@ -86,21 +85,6 @@ const AdminLogin: React.FC = () => {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                TOTP-код (если включён)
-              </label>
-              <input
-                type="text"
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value)}
-                className="block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm font-mono tracking-widest"
-                placeholder="000000"
-                maxLength={6}
-                disabled={isLoading}
-              />
             </div>
 
             <button

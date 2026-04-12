@@ -13,7 +13,7 @@ from schemas.schemas import (
     AdminGroupResponse, AdminGroupCreate, AdminGroupDetail,
     MemberResponse, MessageResponse,
 )
-from core.security import verify_password, create_admin_token, verify_totp, hash_password
+from core.security import verify_password, create_admin_token, hash_password
 from core.deps import get_current_admin
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -34,12 +34,6 @@ async def admin_login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный логин или пароль",
-        )
-
-    if not data.totp_code or not verify_totp(admin.totp_secret, data.totp_code):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный код 2FA",
         )
 
     token = create_admin_token(admin.id, admin.login)

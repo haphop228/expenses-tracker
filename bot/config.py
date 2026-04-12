@@ -6,7 +6,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 API_URL = os.getenv("API_URL", "http://api:8000/api/v1")
-BOT_API_TOKEN = os.getenv("BOT_API_TOKEN", "")  # X-Bot-Token для запросов к API
+BOT_API_SECRET = os.getenv("BOT_API_SECRET", "")  # X-Bot-Token для запросов к API
 
 TIMEZONE = os.getenv("TIMEZONE", "Europe/Moscow")
 

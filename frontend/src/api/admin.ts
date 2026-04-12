@@ -18,11 +18,10 @@ adminClient.interceptors.request.use((config) => {
 })
 
 export const adminApi = {
-  login: async (login: string, password: string, totpCode?: string): Promise<AdminTokenResponse> => {
+  login: async (login: string, password: string): Promise<AdminTokenResponse> => {
     const response = await adminClient.post<AdminTokenResponse>('/admin/login', {
       login,
       password,
-      totp_code: totpCode,
     })
     return response.data
   },
