@@ -125,12 +125,14 @@ services:
     restart: always
     environment:
       DOMAIN: ${DOMAIN}
+    command: >
+      /bin/sh -c "envsubst '$$DOMAIN' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     ports:
       - "80:80"
       - "443:443"
       - "127.0.0.1:8080:8080"
     volumes:
-      - ./nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./nginx/certbot-webroot:/var/www/certbot:ro
     depends_on:
