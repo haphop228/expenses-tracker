@@ -86,6 +86,17 @@ http {
             return 403;
         }
 
+        # ---- Блокировка чувствительных файлов ----
+        location ~ /\. {
+            deny all;
+            return 404;
+        }
+
+        location ~* \.(env|git|gitignore|dockerignore|sql|sh|py|md|yml|yaml|toml|cfg|ini|log|bak|swp)$ {
+            deny all;
+            return 404;
+        }
+
         # Health check (без rate limit, без логов)
         location = /health {
             proxy_pass http://api:8000/health;
