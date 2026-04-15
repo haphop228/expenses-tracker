@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import settings
-from database import engine, Base
+from database import engine, Base, init_db
 from core.redis import get_redis
 
 # Импорт всех моделей для создания таблиц
@@ -34,6 +34,14 @@ logging.basicConfig(
 async def lifespan(app: FastAPI):
     """Управление жизненным циклом приложения."""
     logger.info("Запуск приложения...")
+
+    # Создаём таблицы если их нет (CREATE TABLE IF NOT EXISTS)
+    try:
+        await init_db()
+        logger.info("БД: таблицы проверены/созданы")
+    except Exception as e:
+        logger.error(f"БД: ошибка при создании таблиц — {e}")
+        raise
 
     # Проверяем подключение к Redis
     try:
