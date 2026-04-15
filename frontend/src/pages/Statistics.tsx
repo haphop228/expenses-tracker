@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { format, startOfMonth, endOfMonth, subMonths, startOfWeek, endOfWeek } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import {
@@ -35,6 +36,7 @@ const PERIOD_OPTIONS = [
 ]
 
 const Statistics: React.FC = () => {
+  const navigate = useNavigate()
   const [stats, setStats] = useState<StatsSummaryResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [period, setPeriod] = useState('current')
@@ -42,6 +44,11 @@ const Statistics: React.FC = () => {
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
   const [activeTab, setActiveTab] = useState<'category' | 'user'>('category')
   const [excludeBudgetExcluded, setExcludeBudgetExcluded] = useState(false)
+
+  const goToExpenses = useCallback((filters: { category_id?: number; user_id?: number; user_name?: string; date_from?: string; date_to?: string }) => {
+    const { user_name, ...filterFields } = filters
+    navigate('/expenses', { state: { filters: { ...filterFields, date_from: dateFrom, date_to: dateTo }, user_name } })
+  }, [navigate, dateFrom, dateTo])
 
   const applyPeriod = useCallback((p: string) => {
     const now = new Date()
@@ -153,7 +160,7 @@ const Statistics: React.FC = () => {
           </div>
           {excludeBudgetExcluded && (
             <p className="text-xs text-orange-500 mt-1.5">
-              ⚠️ Категории, исключённые из бюджета, не учитываются
+              Категории, исключённые из бюджета, не учитываются
             </p>
           )}
         </div>
@@ -236,6 +243,11 @@ const Statistics: React.FC = () => {
                       outerRadius={110}
                       paddingAngle={2}
                       dataKey="value"
+                      onClick={(_, index) => {
+                        const cat = stats?.by_category[index]
+                        if (cat) goToExpenses({ category_id: cat.category_id ?? undefined })
+                      }}
+                      style={{ cursor: 'pointer' }}
                     >
                       {categoryData.map((_, index) => (
                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -258,16 +270,21 @@ const Statistics: React.FC = () => {
                 <h3 className="text-base font-semibold text-gray-900 mb-4">Детализация</h3>
                 <div className="space-y-3">
                   {stats.by_category.map((cat, index) => (
-                    <div key={cat.category_id}>
+                    <div
+                      key={cat.category_id}
+                      className="cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1 -mx-2 transition-colors group"
+                      onClick={() => goToExpenses({ category_id: cat.category_id ?? undefined })}
+                      title="Перейти к расходам по этой категории"
+                    >
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700 flex items-center gap-1.5">
+                        <span className="text-gray-700 flex items-center gap-1.5 group-hover:text-primary-600 transition-colors">
                           <span
                             className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                           />
                           {cat.category_emoji} {cat.category_name}
                         </span>
-                        <span className="font-medium text-gray-900">
+                        <span className="font-medium text-gray-900 group-hover:text-primary-600 transition-colors">
                           {formatAmount(Number(cat.total))}
                         </span>
                       </div>
@@ -302,7 +319,15 @@ const Statistics: React.FC = () => {
                     <XAxis type="number" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                     <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
                     <Tooltip formatter={(value: number) => formatAmount(value)} />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    <Bar
+                      dataKey="value"
+                      radius={[0, 4, 4, 0]}
+                      onClick={(_, index) => {
+                        const user = stats?.by_user[index]
+                        if (user) goToExpenses({ user_id: user.user_id, user_name: user.user_name })
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
                       {userData.map((_, index) => (
                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
                       ))}
@@ -316,16 +341,21 @@ const Statistics: React.FC = () => {
                 <h3 className="text-base font-semibold text-gray-900 mb-4">Детализация</h3>
                 <div className="space-y-3">
                   {stats.by_user.map((user, index) => (
-                    <div key={user.user_id}>
+                    <div
+                      key={user.user_id}
+                      className="cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1 -mx-2 transition-colors group"
+                      onClick={() => goToExpenses({ user_id: user.user_id, user_name: user.user_name })}
+                      title="Перейти к расходам этого участника"
+                    >
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700 flex items-center gap-1.5">
+                        <span className="text-gray-700 flex items-center gap-1.5 group-hover:text-primary-600 transition-colors">
                           <span
                             className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                           />
                           {user.user_name}
                         </span>
-                        <span className="font-medium text-gray-900">
+                        <span className="font-medium text-gray-900 group-hover:text-primary-600 transition-colors">
                           {formatAmount(Number(user.total))}
                         </span>
                       </div>

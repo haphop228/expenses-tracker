@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, Filter, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { Plus, Search, Filter, Trash2, Edit2, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { expensesApi } from '../api/expenses'
@@ -159,6 +160,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ expense, categories, onClos
 }
 
 const Expenses: React.FC = () => {
+  const location = useLocation()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [total, setTotal] = useState(0)
@@ -167,8 +169,18 @@ const Expenses: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editExpense, setEditExpense] = useState<Expense | null>(null)
-  const [filters, setFilters] = useState<ExpenseFilters>({ per_page: 20 })
-  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState<ExpenseFilters>(() => {
+    const state = location.state as { filters?: ExpenseFilters; user_name?: string } | null
+    return state?.filters ? { per_page: 20, ...state.filters } : { per_page: 20 }
+  })
+  const [filterUserName, setFilterUserName] = useState<string | undefined>(() => {
+    const state = location.state as { filters?: ExpenseFilters; user_name?: string } | null
+    return state?.user_name
+  })
+  const [showFilters, setShowFilters] = useState(() => {
+    const state = location.state as { filters?: ExpenseFilters } | null
+    return !!(state?.filters)
+  })
   const [searchComment, setSearchComment] = useState('')
 
   const loadExpenses = useCallback(async () => {
@@ -221,6 +233,18 @@ const Expenses: React.FC = () => {
       )
     : expenses
 
+  // Активные фильтры (кроме per_page) для отображения бейджей
+  const activeFilterCount = [
+    filters.category_id,
+    filters.user_id,
+    filters.date_from,
+    filters.date_to,
+  ].filter(Boolean).length
+
+  const activeCategoryName = filters.category_id
+    ? categories.find((c) => c.id === filters.category_id)
+    : null
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -253,12 +277,61 @@ const Expenses: React.FC = () => {
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`btn-secondary ${showFilters ? 'bg-primary-50 border-primary-300 text-primary-700' : ''}`}
+            className={`btn-secondary relative ${showFilters ? 'bg-primary-50 border-primary-300 text-primary-700' : ''}`}
           >
             <Filter size={16} className="mr-1.5" />
             Фильтры
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
         </div>
+
+        {/* Активные фильтры — бейджи */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {activeCategoryName && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full border border-primary-200">
+                {activeCategoryName.emoji} {activeCategoryName.name}
+                <button onClick={() => { setFilters((f) => ({ ...f, category_id: undefined })); setPage(1) }}>
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {filters.user_id && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full border border-primary-200">
+                👤 {filterUserName ?? `Участник #${filters.user_id}`}
+                <button onClick={() => { setFilters((f) => ({ ...f, user_id: undefined })); setFilterUserName(undefined); setPage(1) }}>
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {filters.date_from && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full border border-primary-200">
+                С {filters.date_from}
+                <button onClick={() => { setFilters((f) => ({ ...f, date_from: undefined })); setPage(1) }}>
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {filters.date_to && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full border border-primary-200">
+                По {filters.date_to}
+                <button onClick={() => { setFilters((f) => ({ ...f, date_to: undefined })); setPage(1) }}>
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            <button
+              onClick={() => { setFilters({ per_page: 20 }); setFilterUserName(undefined); setPage(1) }}
+              className="inline-flex items-center gap-1 px-2 py-1 text-gray-500 text-xs hover:text-red-600 transition-colors"
+            >
+              <X size={12} /> Сбросить все
+            </button>
+          </div>
+        )}
 
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -298,7 +371,7 @@ const Expenses: React.FC = () => {
             </div>
             <div className="sm:col-span-3 flex gap-2">
               <button
-                onClick={() => { setFilters({ per_page: 20 }); setPage(1) }}
+                onClick={() => { setFilters({ per_page: 20 }); setFilterUserName(undefined); setPage(1) }}
                 className="btn-secondary btn-sm"
               >
                 Сбросить
