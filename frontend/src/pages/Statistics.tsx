@@ -317,10 +317,14 @@ const Statistics: React.FC = () => {
               <div className="card">
                 <h3 className="text-base font-semibold text-gray-900 mb-4">По участникам</h3>
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={userData} layout="vertical">
+                  <BarChart data={userData} layout="vertical" barCategoryGap="20%">
                     <XAxis type="number" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                     <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                    <Tooltip formatter={(value: number) => formatAmount(value)} />
+                    <Tooltip
+                      formatter={(value: number) => formatAmount(value)}
+                      isAnimationActive={false}
+                      cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+                    />
                     <Bar
                       dataKey="value"
                       radius={[0, 4, 4, 0]}
@@ -330,11 +334,24 @@ const Statistics: React.FC = () => {
                       }}
                       style={{ cursor: 'pointer' }}
                       isAnimationActive={false}
-                    >
-                      {userData.map((entry, index) => (
-                        <Cell key={index} fill={entry.fill} />
-                      ))}
-                    </Bar>
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      shape={(props: any) => {
+                        const { x = 0, y = 0, width = 0, height = 0, index = 0 } = props
+                        const entry = userData[index]
+                        const r = Math.min(4, height / 2)
+                        return (
+                          <rect
+                            x={x}
+                            y={y}
+                            width={Math.max(0, width)}
+                            height={height}
+                            rx={r}
+                            ry={r}
+                            fill={entry?.fill ?? '#3b82f6'}
+                          />
+                        )
+                      }}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
