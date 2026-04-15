@@ -4,8 +4,6 @@
 
 Использование:
     python scripts/create_admin.py --login admin --password MySecurePass123
-
-После создания выведет TOTP URI для настройки Google Authenticator.
 """
 import asyncio
 import argparse
@@ -19,7 +17,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy import select
 
 from core.config import settings
-from core.security import hash_password, generate_totp_secret, get_totp_uri
+from core.security import hash_password, generate_totp_secret
 from models.models import Admin
 from database import Base
 
@@ -47,15 +45,11 @@ async def create_admin(login: str, password: str) -> None:
         await session.commit()
         await session.refresh(admin)
 
-        totp_uri = get_totp_uri(totp_secret, login)
-
         print(f"\n✅ Администратор создан:")
         print(f"   Логин: {login}")
         print(f"   ID: {admin.id}")
-        print(f"\n🔐 TOTP секрет: {totp_secret}")
-        print(f"\n📱 Добавьте в Google Authenticator:")
-        print(f"   {totp_uri}")
-        print(f"\n⚠️  Сохраните TOTP секрет в надёжном месте!")
+        print(f"\nВойдите в панель администратора через SSH tunnel:")
+        print(f"   http://localhost:8080/admin/login")
 
     await engine.dispose()
 
