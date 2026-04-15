@@ -114,6 +114,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: /api/v1
+        VITE_PUBLIC_URL: https://${DOMAIN}
     container_name: expenses_frontend
     restart: always
     networks:

@@ -499,7 +499,7 @@ const AdminDashboard: React.FC = () => {
               <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
                 <p className="text-xs text-gray-400 mb-1">Ссылка для регистрации:</p>
                 <p className="text-xs font-mono text-blue-400 break-all">
-                  {window.location.origin}/register/{inviteCode}
+                  {(import.meta.env.VITE_PUBLIC_URL || window.location.origin)}/register/{inviteCode}
                 </p>
               </div>
               <p className="text-xs text-gray-500">

@@ -442,7 +442,7 @@ const Settings: React.FC = () => {
                         </p>
                       )}
                       <p className="text-xs text-blue-500 mt-1">
-                        Ссылка: {window.location.origin}/register/{inviteCode}
+                        Ссылка: {(import.meta.env.VITE_PUBLIC_URL || window.location.origin)}/register/{inviteCode}
                       </p>
                     </div>
                   )}
