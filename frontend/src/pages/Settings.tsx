@@ -395,13 +395,34 @@ const Settings: React.FC = () => {
                   })}
                 </div>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="time"
-                    value={settingsForm.reminder_time ?? '20:00'}
-                    onChange={(e) => setSettingsForm((f) => ({ ...f, reminder_time: e.target.value }))}
-                    className="input w-36"
-                  />
-                  <span className="text-xs text-gray-500">или введите вручную</span>
+                  <select
+                    value={(settingsForm.reminder_time ?? '20:00').split(':')[0]}
+                    onChange={(e) => {
+                      const mins = (settingsForm.reminder_time ?? '20:00').split(':')[1] ?? '00'
+                      setSettingsForm((f) => ({ ...f, reminder_time: `${e.target.value}:${mins}` }))
+                    }}
+                    className="block px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none cursor-pointer pr-8"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
+                  >
+                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((h) => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                  <span className="text-gray-500 font-medium">:</span>
+                  <select
+                    value={(settingsForm.reminder_time ?? '20:00').split(':')[1] ?? '00'}
+                    onChange={(e) => {
+                      const hrs = (settingsForm.reminder_time ?? '20:00').split(':')[0] ?? '20'
+                      setSettingsForm((f) => ({ ...f, reminder_time: `${hrs}:${e.target.value}` }))
+                    }}
+                    className="block px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none cursor-pointer pr-8"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
+                  >
+                    {['00', '15', '30', '45'].map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-gray-500">часы : минуты</span>
                 </div>
               </div>
               <button onClick={handleSaveSettings} className="btn-primary">
