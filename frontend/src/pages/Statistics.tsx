@@ -16,7 +16,7 @@ import {
 } from 'recharts'
 import { statisticsApi } from '../api/statistics'
 import type { StatsSummaryResponse } from '../types'
-import { COLORS } from '../constants'
+import { COLORS, getColorById } from '../constants'
 
 const formatAmount = (amount: number): string =>
   new Intl.NumberFormat('ru-RU', {
@@ -97,12 +97,14 @@ const Statistics: React.FC = () => {
     name: `${c.category_emoji || ''} ${c.category_name || ''}`.trim(),
     value: Number(c.total),
     percentage: c.percentage,
+    fill: getColorById(c.category_id ?? 0),
   })) ?? []
 
   const userData = stats?.by_user.map((u) => ({
     name: u.user_name,
     value: Number(u.total),
     percentage: u.percentage,
+    fill: getColorById(u.user_id),
   })) ?? []
 
   const periodLabel = (() => {
@@ -249,8 +251,8 @@ const Statistics: React.FC = () => {
                       }}
                       style={{ cursor: 'pointer' }}
                     >
-                      {categoryData.map((_, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      {categoryData.map((entry, index) => (
+                        <Cell key={index} fill={entry.fill} />
                       ))}
                     </Pie>
                     <Tooltip
@@ -269,41 +271,41 @@ const Statistics: React.FC = () => {
               <div className="card">
                 <h3 className="text-base font-semibold text-gray-900 mb-4">Детализация</h3>
                 <div className="space-y-3">
-                  {stats.by_category.map((cat, index) => (
-                    <div
-                      key={cat.category_id}
-                      className="cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1 -mx-2 transition-colors group"
-                      onClick={() => goToExpenses({ category_id: cat.category_id ?? undefined })}
-                      title="Перейти к расходам по этой категории"
-                    >
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700 flex items-center gap-1.5 group-hover:text-primary-600 transition-colors">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                          />
-                          {cat.category_emoji} {cat.category_name}
-                        </span>
-                        <span className="font-medium text-gray-900 group-hover:text-primary-600 transition-colors">
-                          {formatAmount(Number(cat.total))}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-100 rounded-full h-1.5">
-                          <div
-                            className="h-1.5 rounded-full"
-                            style={{
-                              width: `${cat.percentage}%`,
-                              backgroundColor: COLORS[index % COLORS.length],
-                            }}
-                          />
+                  {stats.by_category.map((cat) => {
+                    const color = getColorById(cat.category_id ?? 0)
+                    return (
+                      <div
+                        key={cat.category_id}
+                        className="cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1 -mx-2 transition-colors group"
+                        onClick={() => goToExpenses({ category_id: cat.category_id ?? undefined })}
+                        title="Перейти к расходам по этой категории"
+                      >
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-700 flex items-center gap-1.5 group-hover:text-primary-600 transition-colors">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                            {cat.category_emoji} {cat.category_name}
+                          </span>
+                          <span className="font-medium text-gray-900 group-hover:text-primary-600 transition-colors">
+                            {formatAmount(Number(cat.total))}
+                          </span>
                         </div>
-                        <span className="text-xs text-gray-400 w-10 text-right">
-                          {cat.percentage.toFixed(0)}%
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                            <div
+                              className="h-1.5 rounded-full"
+                              style={{ width: `${cat.percentage}%`, backgroundColor: color }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-400 w-10 text-right">
+                            {cat.percentage.toFixed(0)}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -327,9 +329,10 @@ const Statistics: React.FC = () => {
                         if (user) goToExpenses({ user_id: user.user_id, user_name: user.user_name })
                       }}
                       style={{ cursor: 'pointer' }}
+                      isAnimationActive={false}
                     >
-                      {userData.map((_, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      {userData.map((entry, index) => (
+                        <Cell key={index} fill={entry.fill} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -340,41 +343,41 @@ const Statistics: React.FC = () => {
               <div className="card">
                 <h3 className="text-base font-semibold text-gray-900 mb-4">Детализация</h3>
                 <div className="space-y-3">
-                  {stats.by_user.map((user, index) => (
-                    <div
-                      key={user.user_id}
-                      className="cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1 -mx-2 transition-colors group"
-                      onClick={() => goToExpenses({ user_id: user.user_id, user_name: user.user_name })}
-                      title="Перейти к расходам этого участника"
-                    >
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700 flex items-center gap-1.5 group-hover:text-primary-600 transition-colors">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                          />
-                          {user.user_name}
-                        </span>
-                        <span className="font-medium text-gray-900 group-hover:text-primary-600 transition-colors">
-                          {formatAmount(Number(user.total))}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-100 rounded-full h-1.5">
-                          <div
-                            className="h-1.5 rounded-full"
-                            style={{
-                              width: `${user.percentage}%`,
-                              backgroundColor: COLORS[index % COLORS.length],
-                            }}
-                          />
+                  {stats.by_user.map((user) => {
+                    const color = getColorById(user.user_id)
+                    return (
+                      <div
+                        key={user.user_id}
+                        className="cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1 -mx-2 transition-colors group"
+                        onClick={() => goToExpenses({ user_id: user.user_id, user_name: user.user_name })}
+                        title="Перейти к расходам этого участника"
+                      >
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-700 flex items-center gap-1.5 group-hover:text-primary-600 transition-colors">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                            {user.user_name}
+                          </span>
+                          <span className="font-medium text-gray-900 group-hover:text-primary-600 transition-colors">
+                            {formatAmount(Number(user.total))}
+                          </span>
                         </div>
-                        <span className="text-xs text-gray-400 w-10 text-right">
-                          {user.percentage.toFixed(0)}%
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                            <div
+                              className="h-1.5 rounded-full"
+                              style={{ width: `${user.percentage}%`, backgroundColor: color }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-400 w-10 text-right">
+                            {user.percentage.toFixed(0)}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             </div>

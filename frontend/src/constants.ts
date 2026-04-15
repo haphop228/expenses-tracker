@@ -8,3 +8,11 @@ export const COLORS = [
   '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#6366f1',
   '#14b8a6', '#f43f5e', '#a855f7', '#22c55e', '#eab308',
 ]
+
+/**
+ * Детерминированный цвет по числовому ID.
+ * Один и тот же ID всегда даёт один и тот же цвет,
+ * независимо от порядка элементов в массиве.
+ */
+export const getColorById = (id: number): string =>
+  COLORS[Math.abs(id) % COLORS.length]

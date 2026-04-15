@@ -16,6 +16,79 @@ const formatAmount = (amount: number): string =>
     maximumFractionDigits: 2,
   }).format(amount)
 
+const SELECT_STYLE = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat' as const,
+  backgroundPosition: 'right 8px center',
+}
+
+const MONTHS = [
+  'Январь','Февраль','Март','Апрель','Май','Июнь',
+  'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь',
+]
+
+interface DateSelectPickerProps {
+  value: string // yyyy-MM-dd
+  onChange: (value: string) => void
+  disabled?: boolean
+}
+
+const DateSelectPicker: React.FC<DateSelectPickerProps> = ({ value, onChange, disabled }) => {
+  const [year, month, day] = value.split('-').map(Number)
+
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  const months = MONTHS.map((name, i) => ({ value: i + 1, name }))
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
+
+  const update = (d: number, m: number, y: number) => {
+    const maxDay = new Date(y, m, 0).getDate()
+    const safeDay = Math.min(d, maxDay)
+    onChange(`${y}-${String(m).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`)
+  }
+
+  const selectClass = 'px-2 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none cursor-pointer pr-6'
+
+  return (
+    <div className="flex gap-2">
+      <select
+        value={day}
+        onChange={(e) => update(Number(e.target.value), month, year)}
+        className={`${selectClass} w-20`}
+        style={SELECT_STYLE}
+        disabled={disabled}
+      >
+        {days.map((d) => (
+          <option key={d} value={d}>{String(d).padStart(2, '0')}</option>
+        ))}
+      </select>
+      <select
+        value={month}
+        onChange={(e) => update(day, Number(e.target.value), year)}
+        className={`${selectClass} flex-1`}
+        style={SELECT_STYLE}
+        disabled={disabled}
+      >
+        {months.map((m) => (
+          <option key={m.value} value={m.value}>{m.name}</option>
+        ))}
+      </select>
+      <select
+        value={year}
+        onChange={(e) => update(day, month, Number(e.target.value))}
+        className={`${selectClass} w-24`}
+        style={SELECT_STYLE}
+        disabled={disabled}
+      >
+        {years.map((y) => (
+          <option key={y} value={y}>{y}</option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
 interface ExpenseModalProps {
   expense?: Expense | null
   categories: Category[]
@@ -128,13 +201,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ expense, categories, onClos
           </div>
           <div>
             <label className="label">Дата</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="input"
-              disabled={isLoading}
-            />
+            <DateSelectPicker value={date} onChange={setDate} disabled={isLoading} />
           </div>
           <div className="flex gap-3 pt-2">
             <button
