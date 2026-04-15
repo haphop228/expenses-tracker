@@ -99,7 +99,7 @@ http {
 
         # Health check (без rate limit, без логов)
         location = /health {
-            proxy_pass http://api:8000/health;
+            proxy_pass http://api:8000/api/v1/health;
             access_log off;
         }
 
@@ -162,7 +162,7 @@ http {
 
         # Health check
         location = /health {
-            proxy_pass http://api:8000/health;
+            proxy_pass http://api:8000/api/v1/health;
             access_log off;
         }
 
