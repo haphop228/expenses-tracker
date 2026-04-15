@@ -322,3 +322,22 @@ grep BOT_TOKEN .env
 ### ❓ Инвайт-код не работает
 
 Инвайт-коды действуют **7 дней**. Создайте новый через admin-панель.
+
+### ❓ `password authentication failed for user "expenses_user"`
+
+PostgreSQL инициализируется **один раз** при первом запуске с паролем из `.env`.
+Если `.env` менялся после этого — пароль в БД остался старым.
+
+Сбросить пароль без потери данных:
+```bash
+docker exec expenses_postgres psql -U expenses_user -d expenses -c \
+  "ALTER USER expenses_user WITH PASSWORD 'ваш_пароль_из_env';"
+```
+
+После этого перезапустить API:
+```bash
+docker-compose restart api
+```
+
+> ⚠️ Не используйте `docker-compose down -v` — флаг `-v` удаляет тома с данными БД.
+> Обычный `docker-compose down` + `docker-compose up -d` тома не трогает.
