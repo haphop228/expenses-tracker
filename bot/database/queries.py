@@ -2,11 +2,26 @@
 Запросы к PostgreSQL для бота.
 Все запросы фильтруются по group_id для мультитенантности.
 """
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import datetime, timezone, date as date_type
+from typing import Optional, Union
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+
+
+def _parse_dt(value: Union[str, datetime, date_type]) -> datetime:
+    """Конвертировать строку даты/datetime в объект datetime для asyncpg."""
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date_type):
+        return datetime(value.year, value.month, value.day)
+    # строка вида 'YYYY-MM-DD' или 'YYYY-MM-DD HH:MM:SS'
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"Не удалось распознать дату: {value!r}")
 
 
 # ==================== ПОЛЬЗОВАТЕЛИ ====================
@@ -336,7 +351,7 @@ async def get_expenses_for_period(db: AsyncSession, group_id: int, date_from: st
               AND e.created_at < :date_to
             ORDER BY e.created_at DESC
         """),
-        {"group_id": group_id, "date_from": date_from, "date_to": date_to}
+        {"group_id": group_id, "date_from": _parse_dt(date_from), "date_to": _parse_dt(date_to)}
     )
     return [dict(row) for row in result.mappings().fetchall()]
 
@@ -356,7 +371,7 @@ async def get_stats_by_category(db: AsyncSession, group_id: int, date_from: str,
             GROUP BY c.id, c.name, c.emoji
             ORDER BY total DESC
         """),
-        {"group_id": group_id, "date_from": date_from, "date_to": date_to}
+        {"group_id": group_id, "date_from": _parse_dt(date_from), "date_to": _parse_dt(date_to)}
     )
     return [dict(row) for row in result.mappings().fetchall()]
 
@@ -376,7 +391,7 @@ async def get_stats_by_user(db: AsyncSession, group_id: int, date_from: str, dat
             GROUP BY e.user_id, u.name
             ORDER BY total DESC
         """),
-        {"group_id": group_id, "date_from": date_from, "date_to": date_to}
+        {"group_id": group_id, "date_from": _parse_dt(date_from), "date_to": _parse_dt(date_to)}
     )
     return [dict(row) for row in result.mappings().fetchall()]
 
@@ -404,7 +419,7 @@ async def get_stats_by_category_budget(
             GROUP BY c.id, c.name, c.emoji
             ORDER BY total DESC
         """),
-        {"group_id": group_id, "date_from": date_from, "date_to": date_to}
+        {"group_id": group_id, "date_from": _parse_dt(date_from), "date_to": _parse_dt(date_to)}
     )
     return [dict(row) for row in result.mappings().fetchall()]
 
@@ -430,7 +445,7 @@ async def get_all_expenses_for_export(
                   AND e.created_at < :date_to
                 ORDER BY e.created_at DESC
             """),
-            {"group_id": group_id, "date_from": date_from, "date_to": date_to}
+            {"group_id": group_id, "date_from": _parse_dt(date_from), "date_to": _parse_dt(date_to)}
         )
     else:
         result = await db.execute(
@@ -551,7 +566,7 @@ async def get_total_spent_for_month(
                   AND e.created_at < :next_month
                   AND c.exclude_from_budget = FALSE
             """),
-            {"group_id": group_id, "date_from": date_from, "next_month": next_month}
+            {"group_id": group_id, "date_from": _parse_dt(date_from), "next_month": _parse_dt(next_month)}
         )
     else:
         result = await db.execute(
@@ -562,7 +577,7 @@ async def get_total_spent_for_month(
                   AND created_at >= :date_from
                   AND created_at < :next_month
             """),
-            {"group_id": group_id, "date_from": date_from, "next_month": next_month}
+            {"group_id": group_id, "date_from": _parse_dt(date_from), "next_month": _parse_dt(next_month)}
         )
     return float(result.scalar_one() or 0.0)
 
