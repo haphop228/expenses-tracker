@@ -11,7 +11,7 @@ from models.models import Admin, Group, User, Expense, GroupSettings, InviteCode
 from schemas.schemas import (
     AdminLoginRequest, AdminTokenResponse,
     AdminGroupResponse, AdminGroupCreate, AdminGroupDetail,
-    MemberResponse, MessageResponse,
+    MemberResponse, MessageResponse, AdminResetPasswordRequest,
 )
 from core.security import verify_password, create_admin_token, hash_password
 from core.deps import get_current_admin
@@ -223,6 +223,24 @@ async def list_users(
     result = await db.execute(query)
     users = result.scalars().all()
     return [MemberResponse.model_validate(u) for u in users]
+
+
+@router.post("/users/{user_id}/reset-password", response_model=MessageResponse)
+async def reset_user_password(
+    user_id: int,
+    data: AdminResetPasswordRequest,
+    admin: Admin = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Сбросить пароль пользователя (от имени администратора)."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    user.web_password_hash = hash_password(data.new_password)
+    await db.commit()
+    return MessageResponse(message=f"Пароль пользователя '{user.name}' сброшен")
 
 
 @router.delete("/users/{user_id}", response_model=MessageResponse)

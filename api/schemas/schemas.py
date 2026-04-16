@@ -75,6 +75,15 @@ class UserUpdate(BaseModel):
 
 # ==================== АВТОРИЗАЦИЯ ====================
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8, max_length=100)
+
+
+class AdminResetPasswordRequest(BaseModel):
+    new_password: str = Field(..., min_length=8, max_length=100)
+
+
 class RegisterRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     web_login: str = Field(..., min_length=3, max_length=100, pattern=r"^[a-zA-Z0-9_]+$")

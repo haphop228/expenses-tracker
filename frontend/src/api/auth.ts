@@ -52,4 +52,11 @@ export const authApi = {
     const response = await apiClient.post<LinkCodeResponse>('/auth/generate-link-code')
     return response.data
   },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    await apiClient.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    })
+  },
 }

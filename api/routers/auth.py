@@ -11,6 +11,7 @@ from models.models import User, Group, GroupSettings, InviteCode
 from schemas.schemas import (
     RegisterRequest, LoginRequest, TokenResponse, RefreshRequest,
     AccessTokenResponse, LinkCodeResponse, MessageResponse, UserMeResponse,
+    ChangePasswordRequest,
 )
 from core.security import (
     hash_password, verify_password,
@@ -244,6 +245,28 @@ async def get_me(
         **{k: v for k, v in current_user.__dict__.items() if not k.startswith("_")},
         group_name=group_name,
     )
+
+
+@router.post("/change-password", response_model=MessageResponse)
+async def change_password(
+    data: ChangePasswordRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Сменить пароль текущего пользователя."""
+    if not current_user.web_password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="У пользователя не установлен пароль",
+        )
+    if not verify_password(data.current_password, current_user.web_password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Неверный текущий пароль",
+        )
+    current_user.web_password_hash = hash_password(data.new_password)
+    await db.commit()
+    return MessageResponse(message="Пароль успешно изменён")
 
 
 @router.post("/generate-link-code", response_model=LinkCodeResponse)

@@ -15,8 +15,15 @@ import {
   Legend,
 } from 'recharts'
 import { statisticsApi } from '../api/statistics'
-import type { StatsSummaryResponse } from '../types'
+import { groupsApi } from '../api/groups'
+import type { StatsSummaryResponse, Member } from '../types'
 import { COLORS, getColorById } from '../constants'
+
+const SELECT_STYLE = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat' as const,
+  backgroundPosition: 'right 8px center',
+}
 
 const formatAmount = (amount: number): string =>
   new Intl.NumberFormat('ru-RU', {
@@ -35,20 +42,63 @@ const PERIOD_OPTIONS = [
   { label: 'Произвольный', value: 'custom' },
 ]
 
+const SESSION_KEY = 'statistics_state'
+
+interface StatisticsState {
+  period: string
+  dateFrom: string
+  dateTo: string
+  activeTab: 'category' | 'user'
+  excludeBudgetExcluded: boolean
+  filterUserId: number | null
+}
+
 const Statistics: React.FC = () => {
   const navigate = useNavigate()
+  const [members, setMembers] = useState<Member[]>([])
+
+  // Восстанавливаем состояние из sessionStorage (задача 1)
+  const savedState = (() => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY)
+      return raw ? (JSON.parse(raw) as StatisticsState) : null
+    } catch {
+      return null
+    }
+  })()
+
   const [stats, setStats] = useState<StatsSummaryResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [period, setPeriod] = useState('current')
-  const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
-  const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
-  const [activeTab, setActiveTab] = useState<'category' | 'user'>('category')
-  const [excludeBudgetExcluded, setExcludeBudgetExcluded] = useState(false)
+  const [period, setPeriod] = useState(savedState?.period ?? 'current')
+  const [dateFrom, setDateFrom] = useState(savedState?.dateFrom ?? format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [dateTo, setDateTo] = useState(savedState?.dateTo ?? format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [activeTab, setActiveTab] = useState<'category' | 'user'>(savedState?.activeTab ?? 'category')
+  const [excludeBudgetExcluded, setExcludeBudgetExcluded] = useState(savedState?.excludeBudgetExcluded ?? false)
+  // Задача 4: фильтр по участнику
+  const [filterUserId, setFilterUserId] = useState<number | null>(savedState?.filterUserId ?? null)
+
+  // Сохраняем состояние в sessionStorage при каждом изменении
+  useEffect(() => {
+    const state: StatisticsState = { period, dateFrom, dateTo, activeTab, excludeBudgetExcluded, filterUserId }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state))
+  }, [period, dateFrom, dateTo, activeTab, excludeBudgetExcluded, filterUserId])
+
+  // Загружаем участников для фильтра (задача 4)
+  useEffect(() => {
+    groupsApi.getMembers().then(setMembers).catch(() => {})
+  }, [])
 
   const goToExpenses = useCallback((filters: { category_id?: number; user_id?: number; user_name?: string; date_from?: string; date_to?: string }) => {
     const { user_name, ...filterFields } = filters
-    navigate('/expenses', { state: { filters: { ...filterFields, date_from: dateFrom, date_to: dateTo }, user_name } })
-  }, [navigate, dateFrom, dateTo])
+    // Задача 3: передаём excluded_category_ids если excludeBudgetExcluded
+    navigate('/expenses', {
+      state: {
+        filters: { ...filterFields, date_from: dateFrom, date_to: dateTo },
+        user_name,
+        excludeBudgetExcluded,
+      },
+    })
+  }, [navigate, dateFrom, dateTo, excludeBudgetExcluded])
 
   const applyPeriod = useCallback((p: string) => {
     const now = new Date()
@@ -72,22 +122,30 @@ const Statistics: React.FC = () => {
     }
   }, [])
 
+  // При смене периода (кроме custom) — пересчитываем даты
   useEffect(() => {
-    applyPeriod(period)
+    if (period !== 'custom') {
+      applyPeriod(period)
+    }
   }, [period, applyPeriod])
 
   const loadStats = useCallback(async () => {
     if (!dateFrom || !dateTo) return
     setIsLoading(true)
     try {
-      const data = await statisticsApi.getSummary(dateFrom, dateTo, excludeBudgetExcluded)
+      const data = await statisticsApi.getSummary(
+        dateFrom,
+        dateTo,
+        excludeBudgetExcluded,
+        filterUserId ?? undefined,
+      )
       setStats(data)
     } catch {
       // ignore
     } finally {
       setIsLoading(false)
     }
-  }, [dateFrom, dateTo, excludeBudgetExcluded])
+  }, [dateFrom, dateTo, excludeBudgetExcluded, filterUserId])
 
   useEffect(() => {
     loadStats()
@@ -114,6 +172,10 @@ const Statistics: React.FC = () => {
     return `${from} — ${to}`
   })()
 
+  const filterUserName = filterUserId
+    ? members.find((m) => m.id === filterUserId)?.name ?? `Участник #${filterUserId}`
+    : null
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -135,6 +197,30 @@ const Statistics: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {/* Задача 4: фильтр по участнику */}
+        {members.length > 1 && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-2">Участник:</p>
+            <select
+              value={filterUserId ?? ''}
+              onChange={(e) => setFilterUserId(e.target.value ? Number(e.target.value) : null)}
+              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none cursor-pointer pr-8"
+              style={SELECT_STYLE}
+            >
+              <option value="">Все участники</option>
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+            {filterUserId && (
+              <p className="text-xs text-primary-600 mt-1.5">
+                Показана статистика для: <strong>{filterUserName}</strong>
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Фильтр исключённых категорий */}
         <div className="mt-3 pt-3 border-t border-gray-100">
           <p className="text-xs text-gray-500 mb-2">Учёт категорий в статистике:</p>
@@ -167,7 +253,7 @@ const Statistics: React.FC = () => {
           )}
         </div>
         {period === 'custom' && (
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100">
             <div>
               <label className="label">С даты</label>
               <input

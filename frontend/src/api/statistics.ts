@@ -6,6 +6,7 @@ export const statisticsApi = {
     dateFrom: string,
     dateTo: string,
     excludeBudgetExcluded = false,
+    userId?: number,
   ): Promise<StatsSummaryResponse> => {
     const params = new URLSearchParams({
       date_from: dateFrom,
@@ -13,6 +14,9 @@ export const statisticsApi = {
     })
     if (excludeBudgetExcluded) {
       params.set('exclude_budget_excluded', 'true')
+    }
+    if (userId !== undefined) {
+      params.set('user_id', String(userId))
     }
     const response = await apiClient.get<StatsSummaryResponse>(
       `/statistics/summary?${params.toString()}`

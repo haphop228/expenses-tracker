@@ -62,4 +62,10 @@ export const adminApi = {
     const response = await adminClient.post(`/admin/groups/${groupId}/invite`)
     return response.data
   },
+
+  resetUserPassword: async (userId: number, newPassword: string): Promise<void> => {
+    await adminClient.post(`/admin/users/${userId}/reset-password`, {
+      new_password: newPassword,
+    })
+  },
 }

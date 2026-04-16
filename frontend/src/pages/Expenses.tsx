@@ -237,12 +237,17 @@ const Expenses: React.FC = () => {
   const [showModal, setShowModal] = useState(false)
   const [editExpense, setEditExpense] = useState<Expense | null>(null)
   const [filters, setFilters] = useState<ExpenseFilters>(() => {
-    const state = location.state as { filters?: ExpenseFilters; user_name?: string } | null
+    const state = location.state as { filters?: ExpenseFilters; user_name?: string; excludeBudgetExcluded?: boolean } | null
     return state?.filters ? { per_page: 20, ...state.filters } : { per_page: 20 }
   })
   const [filterUserName, setFilterUserName] = useState<string | undefined>(() => {
     const state = location.state as { filters?: ExpenseFilters; user_name?: string } | null
     return state?.user_name
+  })
+  // Задача 3: флаг "только бюджетные категории" из Statistics
+  const [filterExcludeBudget, setFilterExcludeBudget] = useState<boolean>(() => {
+    const state = location.state as { excludeBudgetExcluded?: boolean } | null
+    return state?.excludeBudgetExcluded ?? false
   })
   const [showFilters, setShowFilters] = useState(() => {
     const state = location.state as { filters?: ExpenseFilters } | null
@@ -306,6 +311,7 @@ const Expenses: React.FC = () => {
     filters.user_id,
     filters.date_from,
     filters.date_to,
+    filterExcludeBudget || undefined,
   ].filter(Boolean).length
 
   const activeCategoryName = filters.category_id
@@ -391,8 +397,16 @@ const Expenses: React.FC = () => {
                 </button>
               </span>
             )}
+            {filterExcludeBudget && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 text-xs rounded-full border border-orange-200">
+                Только бюджетные
+                <button onClick={() => setFilterExcludeBudget(false)}>
+                  <X size={12} />
+                </button>
+              </span>
+            )}
             <button
-              onClick={() => { setFilters({ per_page: 20 }); setFilterUserName(undefined); setPage(1) }}
+              onClick={() => { setFilters({ per_page: 20 }); setFilterUserName(undefined); setFilterExcludeBudget(false); setPage(1) }}
               className="inline-flex items-center gap-1 px-2 py-1 text-gray-500 text-xs hover:text-red-600 transition-colors"
             >
               <X size={12} /> Сбросить все
@@ -420,25 +434,21 @@ const Expenses: React.FC = () => {
             </div>
             <div>
               <label className="label">С даты</label>
-              <input
-                type="date"
-                value={filters.date_from ?? ''}
-                onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value || undefined }))}
-                className="input"
+              <DateSelectPicker
+                value={filters.date_from ?? format(new Date(), 'yyyy-MM-dd')}
+                onChange={(v) => setFilters((f) => ({ ...f, date_from: v }))}
               />
             </div>
             <div>
               <label className="label">По дату</label>
-              <input
-                type="date"
-                value={filters.date_to ?? ''}
-                onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value || undefined }))}
-                className="input"
+              <DateSelectPicker
+                value={filters.date_to ?? format(new Date(), 'yyyy-MM-dd')}
+                onChange={(v) => setFilters((f) => ({ ...f, date_to: v }))}
               />
             </div>
             <div className="sm:col-span-3 flex gap-2">
               <button
-                onClick={() => { setFilters({ per_page: 20 }); setFilterUserName(undefined); setPage(1) }}
+                onClick={() => { setFilters({ per_page: 20 }); setFilterUserName(undefined); setFilterExcludeBudget(false); setPage(1) }}
                 className="btn-secondary btn-sm"
               >
                 Сбросить

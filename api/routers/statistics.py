@@ -37,6 +37,7 @@ async def get_summary(
     date_from: Optional[str] = Query(None, description="Дата от YYYY-MM-DD"),
     date_to: Optional[str] = Query(None, description="Дата до YYYY-MM-DD"),
     exclude_budget_excluded: bool = Query(False, description="Исключить категории, помеченные exclude_from_budget"),
+    user_id: Optional[int] = Query(None, description="Фильтр по участнику (user_id)"),
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -61,6 +62,10 @@ async def get_summary(
         Expense.created_at >= dt_from,
         Expense.created_at <= dt_to,
     ]
+
+    # Фильтр по участнику
+    if user_id is not None:
+        base_filters.append(Expense.user_id == user_id)
 
     # Если нужно исключить категории
     excluded_category_ids = []

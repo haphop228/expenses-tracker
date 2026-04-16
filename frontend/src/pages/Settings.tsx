@@ -108,7 +108,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ value, onChange }) => {
 
 const Settings: React.FC = () => {
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState<'group' | 'members' | 'categories' | 'telegram'>('group')
+  const [activeTab, setActiveTab] = useState<'group' | 'members' | 'categories' | 'telegram' | 'account'>('group')
   const [members, setMembers] = useState<Member[]>([])
   const [settings, setSettings] = useState<GroupSettings | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
@@ -121,6 +121,11 @@ const Settings: React.FC = () => {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryEmoji, setNewCategoryEmoji] = useState('')
   const [settingsForm, setSettingsForm] = useState<Partial<GroupSettings>>({})
+  // Смена пароля
+  const [pwCurrent, setPwCurrent] = useState('')
+  const [pwNew, setPwNew] = useState('')
+  const [pwConfirm, setPwConfirm] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
   // Редактирование категории
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null)
   const [editCategoryName, setEditCategoryName] = useState('')
@@ -287,6 +292,31 @@ const Settings: React.FC = () => {
     }
   }
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (pwNew !== pwConfirm) {
+      toast.error('Новые пароли не совпадают')
+      return
+    }
+    if (pwNew.length < 8) {
+      toast.error('Новый пароль должен быть не менее 8 символов')
+      return
+    }
+    setPwLoading(true)
+    try {
+      await authApi.changePassword(pwCurrent, pwNew)
+      toast.success('Пароль успешно изменён')
+      setPwCurrent('')
+      setPwNew('')
+      setPwConfirm('')
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      toast.error(msg ?? 'Ошибка при смене пароля')
+    } finally {
+      setPwLoading(false)
+    }
+  }
+
   const handleToggleBudgetExclusion = async (cat: Category) => {
     try {
       await categoriesApi.update(cat.id, cat.name, cat.emoji || undefined, !cat.exclude_from_budget)
@@ -302,6 +332,7 @@ const Settings: React.FC = () => {
     { id: 'members', label: 'Участники', icon: <Users size={16} /> },
     { id: 'categories', label: 'Категории', icon: <SettingsIcon size={16} /> },
     { id: 'telegram', label: 'Telegram', icon: <Link size={16} /> },
+    { id: 'account', label: 'Аккаунт', icon: <SettingsIcon size={16} /> },
   ] as const
 
   return (
@@ -714,6 +745,59 @@ const Settings: React.FC = () => {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Account tab — смена пароля */}
+          {activeTab === 'account' && (
+            <div className="card space-y-4">
+              <h2 className="text-base font-semibold text-gray-900">Смена пароля</h2>
+              <form onSubmit={handleChangePassword} className="space-y-3 max-w-sm">
+                <div>
+                  <label className="label">Текущий пароль</label>
+                  <input
+                    type="password"
+                    value={pwCurrent}
+                    onChange={(e) => setPwCurrent(e.target.value)}
+                    className="input"
+                    placeholder="Введите текущий пароль"
+                    disabled={pwLoading}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label">Новый пароль</label>
+                  <input
+                    type="password"
+                    value={pwNew}
+                    onChange={(e) => setPwNew(e.target.value)}
+                    className="input"
+                    placeholder="Минимум 8 символов"
+                    disabled={pwLoading}
+                    required
+                    minLength={8}
+                  />
+                </div>
+                <div>
+                  <label className="label">Повторите новый пароль</label>
+                  <input
+                    type="password"
+                    value={pwConfirm}
+                    onChange={(e) => setPwConfirm(e.target.value)}
+                    className="input"
+                    placeholder="Повторите новый пароль"
+                    disabled={pwLoading}
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={pwLoading || !pwCurrent || !pwNew || !pwConfirm}
+                >
+                  {pwLoading ? 'Сохранение...' : 'Изменить пароль'}
+                </button>
+              </form>
             </div>
           )}
         </>

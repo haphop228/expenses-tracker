@@ -33,6 +33,9 @@ const AdminDashboard: React.FC = () => {
   const [expandedGroupId, setExpandedGroupId] = useState<number | null>(null)
   const [groupDetail, setGroupDetail] = useState<AdminGroupDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null)
+  const [resetPasswordValue, setResetPasswordValue] = useState('')
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false)
 
   const perPage = 20
   const pages = Math.ceil(total / perPage)
@@ -149,6 +152,23 @@ const AdminDashboard: React.FC = () => {
       toast.error('Ошибка загрузки деталей группы')
     } finally {
       setDetailLoading(false)
+    }
+  }
+
+  const handleResetPassword = async (userId: number, userName: string) => {
+    const newPassword = prompt(`Новый пароль для ${userName} (мин. 8 символов):`)
+    if (!newPassword || newPassword.length < 8) {
+      if (newPassword !== null) toast.error('Пароль должен быть не менее 8 символов')
+      return
+    }
+    setResetPasswordLoading(true)
+    try {
+      await adminApi.resetUserPassword(userId, newPassword)
+      toast.success(`Пароль пользователя ${userName} сброшен`)
+    } catch {
+      toast.error('Ошибка при сбросе пароля')
+    } finally {
+      setResetPasswordLoading(false)
     }
   }
 
@@ -378,12 +398,20 @@ const AdminDashboard: React.FC = () => {
                                                 </div>
                                                 <p className="text-xs text-gray-500">@{member.web_login}</p>
                                               </div>
-                                              <div className="text-right">
+                                              <div className="text-right flex items-center gap-2">
                                                 <p className="text-xs text-gray-400">
                                                   {member.created_at
                                                     ? `с ${new Date(member.created_at).toLocaleDateString('ru-RU')}`
                                                     : ''}
                                                 </p>
+                                                <button
+                                                  onClick={() => handleResetPassword(member.id, member.name || member.web_login || 'пользователя')}
+                                                  disabled={resetPasswordLoading}
+                                                  className="text-xs text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded border border-yellow-700 hover:border-yellow-500 transition-colors disabled:opacity-50"
+                                                  title="Сбросить пароль"
+                                                >
+                                                  🔑
+                                                </button>
                                               </div>
                                             </div>
                                           ))}
