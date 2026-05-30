@@ -231,7 +231,10 @@ async def expense_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     created_at = None
     if expense_date:
-        created_at = f"{expense_date} {datetime.now().strftime('%H:%M:%S')}"
+        now = datetime.now()
+        created_at = datetime.strptime(expense_date, "%Y-%m-%d").replace(
+            hour=now.hour, minute=now.minute, second=now.second
+        )
 
     async with AsyncSessionLocal() as db:
         await queries.add_expense(db, group_id, user_id, category_id, amount, comment, created_at)
