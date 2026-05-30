@@ -5,8 +5,9 @@ import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { expensesApi } from '../api/expenses'
 import { categoriesApi } from '../api/categories'
+import { groupsApi } from '../api/groups'
 import toast from 'react-hot-toast'
-import type { Expense, Category, ExpenseCreate, ExpenseFilters } from '../types'
+import type { Expense, Category, Member, ExpenseCreate, ExpenseFilters } from '../types'
 
 const formatAmount = (amount: number): string =>
   new Intl.NumberFormat('ru-RU', {
@@ -230,6 +231,7 @@ const Expenses: React.FC = () => {
   const location = useLocation()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [members, setMembers] = useState<Member[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(1)
@@ -244,7 +246,7 @@ const Expenses: React.FC = () => {
     const state = location.state as { filters?: ExpenseFilters; user_name?: string } | null
     return state?.user_name
   })
-  // Задача 3: флаг "только бюджетные категории" из Statistics
+  // флаг "только бюджетные категории"
   const [filterExcludeBudget, setFilterExcludeBudget] = useState<boolean>(() => {
     const state = location.state as { excludeBudgetExcluded?: boolean } | null
     return state?.excludeBudgetExcluded ?? false
@@ -275,6 +277,7 @@ const Expenses: React.FC = () => {
 
   useEffect(() => {
     categoriesApi.getAll().then(setCategories).catch(() => {})
+    groupsApi.getMembers().then(setMembers).catch(() => {})
   }, [])
 
   const handleDelete = async (id: number) => {
@@ -415,7 +418,7 @@ const Expenses: React.FC = () => {
         )}
 
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="label">Категория</label>
               <select
@@ -428,6 +431,28 @@ const Expenses: React.FC = () => {
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.emoji} {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Участник</label>
+              <select
+                value={filters.user_id ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value ? Number(e.target.value) : undefined
+                  const member = members.find((m) => m.id === val)
+                  setFilters((f) => ({ ...f, user_id: val }))
+                  setFilterUserName(member?.name ?? undefined)
+                  setPage(1)
+                }}
+                className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none cursor-pointer"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+              >
+                <option value="">Все участники</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name || m.web_login || `#${m.id}`}
                   </option>
                 ))}
               </select>
@@ -446,19 +471,30 @@ const Expenses: React.FC = () => {
                 onChange={(v) => setFilters((f) => ({ ...f, date_to: v }))}
               />
             </div>
-            <div className="sm:col-span-3 flex gap-2">
-              <button
-                onClick={() => { setFilters({ per_page: 20 }); setFilterUserName(undefined); setFilterExcludeBudget(false); setPage(1) }}
-                className="btn-secondary btn-sm"
-              >
-                Сбросить
-              </button>
-              <button
-                onClick={() => { setPage(1); loadExpenses() }}
-                className="btn-primary btn-sm"
-              >
-                Применить
-              </button>
+            <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-between flex-wrap gap-3">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={filterExcludeBudget}
+                  onChange={(e) => { setFilterExcludeBudget(e.target.checked); setPage(1) }}
+                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">Только бюджетные категории</span>
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setFilters({ per_page: 20 }); setFilterUserName(undefined); setFilterExcludeBudget(false); setPage(1) }}
+                  className="btn-secondary btn-sm"
+                >
+                  Сбросить
+                </button>
+                <button
+                  onClick={() => { setPage(1); loadExpenses() }}
+                  className="btn-primary btn-sm"
+                >
+                  Применить
+                </button>
+              </div>
             </div>
           </div>
         )}

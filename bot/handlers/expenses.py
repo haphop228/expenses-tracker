@@ -161,11 +161,11 @@ async def expense_set_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     now = datetime.now()
-    days_in_month = calendar.monthrange(now.year, now.month)[1]
 
     context.user_data["state"] = "expense_date"
     await query.edit_message_text(
-        f"📅 Введите число месяца (1–{days_in_month}):\n"
+        f"📅 Введите дату в формате ДД.ММ.ГГГГ (например, 25.12.2023)\n"
+        f"Или просто число текущего месяца (например, 15):\n"
         f"Текущий месяц: {now.strftime('%Y-%m')}"
     )
 
@@ -178,17 +178,33 @@ async def expense_date_input(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     text = update.message.text.strip()
     now = datetime.now()
-    days_in_month = calendar.monthrange(now.year, now.month)[1]
+
+    date_str = None
 
     try:
-        day = int(text)
-        if day < 1 or day > days_in_month:
-            raise ValueError
+        if "." in text:
+            dt = datetime.strptime(text, "%d.%m.%Y")
+            date_str = dt.strftime("%Y-%m-%d")
+        elif "-" in text:
+            if len(text.split("-")[0]) == 4:
+                dt = datetime.strptime(text, "%Y-%m-%d")
+            else:
+                dt = datetime.strptime(text, "%d-%m-%Y")
+            date_str = dt.strftime("%Y-%m-%d")
+        else:
+            day = int(text)
+            days_in_month = calendar.monthrange(now.year, now.month)[1]
+            if day < 1 or day > days_in_month:
+                raise ValueError
+            date_str = f"{now.year}-{now.month:02d}-{day:02d}"
     except ValueError:
-        await update.message.reply_text(f"❌ Введите число от 1 до {days_in_month}.")
+        await update.message.reply_text(
+            "❌ Неверный формат даты.\n"
+            "Введите дату в формате ДД.ММ.ГГГГ (например, 25.12.2023) "
+            "или просто число текущего месяца."
+        )
         return
 
-    date_str = f"{now.year}-{now.month:02d}-{day:02d}"
     context.user_data["expense_date"] = date_str
     context.user_data["state"] = "expense_confirm"
 
