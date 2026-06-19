@@ -77,6 +77,10 @@ const Statistics: React.FC = () => {
   // Задача 4: фильтр по участнику
   const [filterUserId, setFilterUserId] = useState<number | null>(savedState?.filterUserId ?? null)
 
+  const filterUserName = filterUserId
+    ? members.find((m) => m.id === filterUserId)?.name ?? `Участник #${filterUserId}`
+    : null
+
   // Сохраняем состояние в sessionStorage при каждом изменении
   useEffect(() => {
     const state: StatisticsState = { period, dateFrom, dateTo, activeTab, excludeBudgetExcluded, filterUserId }
@@ -90,15 +94,17 @@ const Statistics: React.FC = () => {
 
   const goToExpenses = useCallback((filters: { category_id?: number; user_id?: number; user_name?: string; date_from?: string; date_to?: string }) => {
     const { user_name, ...filterFields } = filters
-    // Задача 3: передаём excluded_category_ids если excludeBudgetExcluded
+    // Если явно не передан user_id, но активен фильтр по участнику — подставляем его
+    const effectiveUserId = filterFields.user_id ?? (filterUserId !== null ? filterUserId : undefined)
+    const effectiveUserName = user_name ?? (filterUserId !== null ? filterUserName ?? undefined : undefined)
     navigate('/expenses', {
       state: {
-        filters: { ...filterFields, date_from: dateFrom, date_to: dateTo },
-        user_name,
+        filters: { ...filterFields, user_id: effectiveUserId, date_from: dateFrom, date_to: dateTo },
+        user_name: effectiveUserName,
         excludeBudgetExcluded,
       },
     })
-  }, [navigate, dateFrom, dateTo, excludeBudgetExcluded])
+  }, [navigate, dateFrom, dateTo, excludeBudgetExcluded, filterUserId, filterUserName])
 
   const applyPeriod = useCallback((p: string) => {
     const now = new Date()
@@ -171,10 +177,6 @@ const Statistics: React.FC = () => {
     const to = format(new Date(dateTo), 'd MMM yyyy', { locale: ru })
     return `${from} — ${to}`
   })()
-
-  const filterUserName = filterUserId
-    ? members.find((m) => m.id === filterUserId)?.name ?? `Участник #${filterUserId}`
-    : null
 
   return (
     <div className="space-y-6">
