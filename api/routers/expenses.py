@@ -256,6 +256,9 @@ async def update_expense(
     if data.comment is not None:
         expense.comment = data.comment
 
+    if data.created_at is not None:
+        expense.created_at = data.created_at
+
     await db.commit()
     await db.refresh(expense)
 

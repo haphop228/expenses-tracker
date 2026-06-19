@@ -188,6 +188,7 @@ class ExpenseUpdate(BaseModel):
     category_id: Optional[int] = None
     amount: Optional[Decimal] = Field(None, gt=0, decimal_places=2)
     comment: Optional[str] = Field(None, max_length=500)
+    created_at: Optional[datetime] = None
 
 
 class PaginatedExpenses(BaseModel):

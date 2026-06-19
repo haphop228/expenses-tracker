@@ -94,6 +94,7 @@ export interface ExpenseUpdate {
   amount?: number
   comment?: string
   category_id?: number
+  created_at?: string
 }
 
 // Statistics types

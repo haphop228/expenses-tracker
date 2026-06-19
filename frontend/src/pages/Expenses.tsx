@@ -130,6 +130,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({ expense, categories, onClos
           amount: amountNum,
           comment: comment || undefined,
           category_id: categoryId,
+          created_at: date,
         })
         toast.success('Расход обновлён')
       } else {
