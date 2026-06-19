@@ -281,6 +281,16 @@ const Expenses: React.FC = () => {
     groupsApi.getMembers().then(setMembers).catch(() => {})
   }, [])
 
+  // Если filterUserName не задан, но user_id есть — разрешаем имя из списка участников
+  useEffect(() => {
+    if (!filterUserName && filters.user_id && members.length > 0) {
+      const member = members.find((m) => m.id === filters.user_id)
+      if (member) {
+        setFilterUserName(member.name || member.web_login || `Участник #${filters.user_id}`)
+      }
+    }
+  }, [members, filters.user_id, filterUserName])
+
   const handleDelete = async (id: number) => {
     if (!confirm('Удалить этот расход?')) return
     try {
