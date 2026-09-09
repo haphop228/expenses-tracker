@@ -92,6 +92,9 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 ### Продакшен
 
+Подробная и актуальная процедура обновления production и настройки TLS описана
+в [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ```bash
 # 1. Подготовить сервер (Ubuntu 20.04+)
 # 2. Установить Docker и Docker Compose
@@ -105,14 +108,15 @@ cd expenses-tracker
 cp .env.example .env
 nano .env  # Заполнить все переменные
 
-# 6. Получить SSL сертификаты
-certbot certonly --standalone -d yourdomain.com
+# 6. До первого запуска получить начальный SSL-сертификат,
+#    пока порт 80 ещё свободен
+sudo certbot certonly --standalone -d yourdomain.com
 
-# 7. Обновить nginx.conf (заменить yourdomain.com)
-nano nginx/nginx.conf
-
-# 8. Запустить сервисы
+# 7. Запустить сервисы
 docker-compose up -d
+
+# 8. Перевести последующие продления на webroot без остановки Nginx
+sudo ./scripts/configure_certbot_webroot.sh yourdomain.com
 
 # 9. Создать первого администратора
 docker-compose exec api python scripts/init_admin.py

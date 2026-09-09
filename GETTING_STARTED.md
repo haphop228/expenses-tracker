@@ -214,11 +214,14 @@ docker exec expenses_nginx /bin/sh -c \
 
 ```bash
 # Получить новый код
-git pull
+git pull --ff-only
 
 # Пересобрать и перезапустить
 docker-compose up --build -d
 ```
+
+Production-процедура, включая автоматическое продление TLS через Certbot
+webroot, описана в [DEPLOYMENT.md](DEPLOYMENT.md).
 
 > 💡 Таблицы БД обновляются автоматически при старте API (через `Base.metadata.create_all`).
 > Alembic-миграции не используются.
