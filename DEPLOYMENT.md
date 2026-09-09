@@ -4,6 +4,17 @@
 через `docker-compose` 1.29.2. Контейнер `telegram-proxy` относится к другому
 проекту: команды из этого документа его не изменяют.
 
+Репозиторий приватный, поэтому для обычного `git pull` у пользователя `root` на
+ВМ должен быть настроен read-only GitHub deploy key. Доступ можно проверить без
+изменения checkout:
+
+```bash
+sudo git -C /root/expenses-tracker ls-remote origin HEAD
+```
+
+Если команда завершается с `Permission denied (publickey)`, сначала добавьте
+отдельный deploy key для этой ВМ. Не копируйте на сервер личный SSH private key.
+
 ## Обновление кода
 
 Сначала опубликуйте локальные изменения:
