@@ -9,6 +9,12 @@ if [ "$(docker inspect --format '{{.State.Running}}' "$NGINX_CONTAINER")" != "tr
     exit 1
 fi
 
-docker exec "$NGINX_CONTAINER" nginx -t
-docker exec "$NGINX_CONTAINER" nginx -s reload
+if ! nginx_test_output="$(docker exec "$NGINX_CONTAINER" nginx -t 2>&1)"; then
+    printf '%s\n' "$nginx_test_output" >&2
+    exit 1
+fi
 
+if ! nginx_reload_output="$(docker exec "$NGINX_CONTAINER" nginx -s reload 2>&1)"; then
+    printf '%s\n' "$nginx_reload_output" >&2
+    exit 1
+fi
